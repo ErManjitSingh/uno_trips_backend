@@ -1,0 +1,31 @@
+@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-amber-50 text-stone-700 antialiased;
+    font-family: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  ::selection {
+    @apply bg-amber-300/70 text-stone-900;
+  }
+}
+
+@layer utilities {
+  .group\/item.relative.flex.items-center.justify-between.rounded-lg.px-3.py-2.text-\[13px\].transition.bg-gradient-to-r.from-amber-500.to-orange-600.text-stone-900.shadow-md {
+    margin-top: 12px;
+  }
+
+  .premium-glass {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_12px_36px_rgba(15,23,42,0.35)];
+  }
+
+  .premium-hover {
+    @apply transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.28)];
+  }
+}
