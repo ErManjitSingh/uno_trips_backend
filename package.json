@@ -2,8 +2,13 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
+    "engines": {
+        "node": ">=22.12.0 <23",
+        "npm": ">=10"
+    },
     "scripts": {
         "build": "vite build",
+        "predev": "node -e \"const p=process.versions.node.split('.').map(Number);const ok=(p[0]===20&&p[1]>=19)||(p[0]===22&&p[1]>=12);if(!ok){console.error('Vite 7 needs Node 20.19+ or 22.12+ (Node 21 is unsupported). You have '+process.version+'. Run: nvm use (see .nvmrc) or install Node 22 LTS.');process.exit(1)}\"",
         "dev": "vite"
     },
     "devDependencies": {

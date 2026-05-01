@@ -10,6 +10,8 @@ use App\Http\Controllers\Admin\CommentModerationController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DestinationController;
 use App\Http\Controllers\Admin\LeadController;
+use App\Http\Controllers\Admin\ListingPageCategoryController;
+use App\Http\Controllers\Admin\ListingPageController as AdminListingPageController;
 use App\Http\Controllers\Admin\TourPackageController;
 use App\Http\Controllers\Admin\FeaturedPackageController;
 use App\Http\Controllers\Admin\AnalyticsController;
@@ -28,10 +30,15 @@ use App\Http\Controllers\Web\BlogController;
 use App\Http\Controllers\Web\ContactController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\LeadController as WebLeadController;
+use App\Http\Controllers\Web\ListingPageController as WebListingPageController;
 use App\Http\Controllers\Web\TourController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect('/admin/dashboard')
+        : redirect('/login');
+})->name('home');
 Route::get('/about', [HomeController::class, 'about'])->name('about');
 Route::get('/tours', [TourController::class, 'index'])->name('tours.index');
 Route::get('/tours/{tourPackage:slug}', [TourController::class, 'show'])->name('tours.show');
@@ -39,6 +46,7 @@ Route::get('/destinations/{destination:slug}', [TourController::class, 'destinat
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{blogPost:slug}', [BlogController::class, 'show'])->name('blog.show');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
+Route::get('/packages/{listingPage:slug}', [WebListingPageController::class, 'show'])->name('packages.show');
 Route::post('/inquiry', [WebLeadController::class, 'store'])->name('inquiry.store');
 Route::get('/thank-you', [ContactController::class, 'thankYou'])->name('thank-you');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
@@ -51,7 +59,6 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
-    Route::redirect('/', '/admin/dashboard');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     Route::prefix('admin')->name('admin.')->middleware(['role:super_admin,staff,sales,content_manager', 'admin.session.timeout'])->group(function (): void {
@@ -79,6 +86,23 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/reviews/bulk-action', [ReviewManagementController::class, 'bulk'])->name('reviews.bulk');
         Route::delete('/reviews/{review}', [ReviewManagementController::class, 'destroy'])->name('reviews.destroy');
         Route::get('/seasonal-offers', [SeasonalOfferController::class, 'index'])->name('seasonal-offers.index');
+        Route::get('/listing-pages', [AdminListingPageController::class, 'index'])->name('listing-pages.index');
+        Route::get('/listing-pages/create', [AdminListingPageController::class, 'create'])->name('listing-pages.create');
+        Route::get('/listing-pages/{listingPage:slug}/edit', [AdminListingPageController::class, 'edit'])->name('listing-pages.edit');
+        Route::post('/listing-pages', [AdminListingPageController::class, 'store'])->name('listing-pages.store');
+        Route::post('/listing-pages/seed-demo', [AdminListingPageController::class, 'seedDemo'])->name('listing-pages.seed-demo');
+        Route::put('/listing-pages/reorder', [AdminListingPageController::class, 'reorder'])->name('listing-pages.reorder');
+        Route::put('/listing-pages/bulk-status', [AdminListingPageController::class, 'bulkStatus'])->name('listing-pages.bulk-status');
+        Route::delete('/listing-pages/bulk-delete', [AdminListingPageController::class, 'bulkDelete'])->name('listing-pages.bulk-delete');
+        Route::put('/listing-pages/{listingPage:slug}', [AdminListingPageController::class, 'update'])->name('listing-pages.update');
+        Route::delete('/listing-pages/{listingPage:slug}', [AdminListingPageController::class, 'destroy'])->name('listing-pages.destroy');
+        Route::put('/listing-pages/{listingPage:slug}/toggle-status', [AdminListingPageController::class, 'toggleStatus'])->name('listing-pages.toggle-status');
+        Route::post('/listing-pages/{listingPage:slug}/duplicate', [AdminListingPageController::class, 'duplicate'])->name('listing-pages.duplicate');
+        Route::get('/listing-categories', [ListingPageCategoryController::class, 'index'])->name('listing-categories.index');
+        Route::post('/listing-categories', [ListingPageCategoryController::class, 'store'])->name('listing-categories.store');
+        Route::put('/listing-categories/{listingCategory}', [ListingPageCategoryController::class, 'update'])->name('listing-categories.update');
+        Route::put('/listing-categories/{listingCategory}/toggle-status', [ListingPageCategoryController::class, 'toggleStatus'])->name('listing-categories.toggle-status');
+        Route::delete('/listing-categories/{listingCategory}', [ListingPageCategoryController::class, 'destroy'])->name('listing-categories.destroy');
         Route::resource('bookings', BookingController::class)->only(['index', 'store', 'update']);
         Route::resource('leads', LeadController::class)->only(['index', 'store', 'update']);
         Route::get('/leads-export', [LeadController::class, 'export'])->name('leads.export');

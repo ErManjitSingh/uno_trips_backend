@@ -36,10 +36,47 @@ export default function AllPackagesPanel({ packages, filters, destinations, upda
     return Math.round(((price - offerPrice) / price) * 100)
   }
 
-  const resolveImageUrl = (value) => {
+  const normalizeImagePath = (value) => {
     if (!value) return null
-    if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) return value
-    return `/storage/${value}`
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (!trimmed) return null
+
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(trimmed)
+          return normalizeImagePath(parsed)
+        } catch {
+          return trimmed
+        }
+      }
+
+      return trimmed
+    }
+
+    if (typeof value === 'object') {
+      return (
+        normalizeImagePath(value.thumb) ||
+        normalizeImagePath(value.thumbnail) ||
+        normalizeImagePath(value.md) ||
+        normalizeImagePath(value.medium) ||
+        normalizeImagePath(value.lg) ||
+        normalizeImagePath(value.large) ||
+        normalizeImagePath(value.original) ||
+        normalizeImagePath(value.path) ||
+        null
+      )
+    }
+
+    return null
+  }
+
+  const resolveImageUrl = (value) => {
+    const path = normalizeImagePath(value)
+    if (!path) return null
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/')) return path
+    return `/storage/${path}`
   }
 
   const openConfirm = (type, pkg) => setConfirmModal({ type, pkg })

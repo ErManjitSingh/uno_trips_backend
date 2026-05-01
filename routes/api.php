@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Admin\ReviewController;
 use App\Http\Controllers\Api\Admin\SeoMetaController;
 use App\Http\Controllers\Api\Admin\TourPackageController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\V1\ListingPageController as V1ListingPageController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -47,4 +48,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::put('reviews/{review}/reject', [ReviewController::class, 'reject']);
     Route::delete('reviews/{review}', [ReviewController::class, 'destroy']);
     Route::post('reviews/{review}/reply', [ReviewController::class, 'reply']);
+});
+
+Route::prefix('v1')->group(function (): void {
+    Route::get('listing-pages', [V1ListingPageController::class, 'index']);
+    Route::post('listing-pages', [V1ListingPageController::class, 'store']);
+    Route::get('listing-pages/{slug}', [V1ListingPageController::class, 'show']);
 });

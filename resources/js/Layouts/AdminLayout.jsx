@@ -87,6 +87,16 @@ const menuGroups = [
         ],
     },
     {
+        key: "listing-pages",
+        label: "Listing Pages",
+        icon: Layers,
+        children: [
+            { href: "/admin/listing-pages", label: "All Listing Pages" },
+            { href: "/admin/listing-pages/create", label: "Create Listing Page" },
+            { href: "/admin/listing-categories", label: "Listing Categories" },
+        ],
+    },
+    {
         key: "seo-management",
         label: "SEO Management",
         icon: SearchCheck,
