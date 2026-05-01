@@ -3,6 +3,16 @@
 
 @theme {
   --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* ~50% of Tailwind default radii site-wide (fields, cards, buttons). rounded-full unchanged. */
+  --radius-xs: calc(0.125rem / 2);
+  --radius-sm: calc(0.25rem / 2);
+  --radius-md: calc(0.375rem / 2);
+  --radius-lg: calc(0.5rem / 2);
+  --radius-xl: calc(0.75rem / 2);
+  --radius-2xl: calc(1rem / 2);
+  --radius-3xl: calc(1.5rem / 2);
+  --radius-4xl: calc(2rem / 2);
 }
 
 @layer base {

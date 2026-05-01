@@ -8,8 +8,8 @@ use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\CommentModerationController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\DestinationController;
 use App\Http\Controllers\Admin\LeadController;
+use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\ListingPageCategoryController;
 use App\Http\Controllers\Admin\ListingPageController as AdminListingPageController;
 use App\Http\Controllers\Admin\TourPackageController;
@@ -60,6 +60,8 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::get('/search-locations', [LocationController::class, 'search'])->name('locations.search');
+    Route::post('/search-locations/recent', [LocationController::class, 'rememberRecent'])->name('locations.recent');
 
     Route::prefix('admin')->name('admin.')->middleware(['role:super_admin,staff,sales,content_manager', 'admin.session.timeout'])->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -70,11 +72,12 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/packages/bulk-discount', [TourPackageController::class, 'bulkDiscount'])->name('packages.bulk-discount');
         Route::post('/packages/bulk-delete', [TourPackageController::class, 'bulkDelete'])->name('packages.bulk-delete');
         Route::post('/packages/{package}/duplicate-log', [TourPackageController::class, 'duplicateLog'])->name('packages.duplicate-log');
+        Route::post('/packages/itinerary-day-image', [TourPackageController::class, 'uploadItineraryDayImage'])->name('packages.itinerary-day-image');
+        Route::post('/packages/editor-image', [TourPackageController::class, 'uploadEditorImage'])->name('packages.editor-image');
         Route::get('/featured-packages', [FeaturedPackageController::class, 'index'])->name('featured-packages.index');
         Route::put('/featured-packages/reorder', [FeaturedPackageController::class, 'reorder'])->name('featured-packages.reorder');
         Route::put('/featured-packages/settings', [FeaturedPackageController::class, 'updateSettings'])->name('featured-packages.settings');
         Route::put('/featured-packages/{package}/feature', [FeaturedPackageController::class, 'updateFeature'])->name('featured-packages.feature');
-        Route::resource('destinations', DestinationController::class)->except(['create', 'edit', 'show']);
         Route::get('/reviews', [ReviewManagementController::class, 'index'])->name('reviews.index');
         Route::get('/reviews/{review}', [ReviewManagementController::class, 'show'])->name('reviews.show');
         Route::put('/reviews/{review}/approve', [ReviewManagementController::class, 'approve'])->name('reviews.approve');
@@ -111,6 +114,8 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/blogs/drafts', [BlogPostController::class, 'drafts'])->name('blogs.drafts');
         Route::get('/blogs/seo-manager', [BlogPostController::class, 'seoManager'])->name('blogs.seo-manager');
         Route::resource('blogs', BlogPostController::class)->except(['create', 'edit', 'show']);
+        Route::post('/blogs/editor-image', [BlogPostController::class, 'uploadEditorImage'])->name('blogs.editor-image');
+        Route::post('/blogs/autosave', [BlogPostController::class, 'autosave'])->name('blogs.autosave');
         Route::post('/blogs/bulk-action', [BlogPostController::class, 'bulkAction'])->name('blogs.bulk-action');
         Route::put('/blogs/{blog}/quick-publish', [BlogPostController::class, 'quickPublish'])->name('blogs.quick-publish');
         Route::put('/blogs/{blog}/seo', [BlogPostController::class, 'updateSeo'])->name('blogs.seo.update');

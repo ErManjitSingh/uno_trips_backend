@@ -16,20 +16,40 @@ const slugify = (value) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
-export default function PackagesIndex({ packages, filters, destinations = [], selectedPackage = null, packageCategories = [] }) {
+const parseOfferCalendar = (json) => {
+  try {
+    const parsed = JSON.parse(String(json || '[]'))
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export default function PackagesIndex({
+  packages,
+  filters,
+  destinations = [],
+  destinationOptions = [],
+  selectedPackage = null,
+  packageCategories = [],
+}) {
   const { data, setData, processing, errors, clearErrors } = useForm({
     title: '',
     slug: '',
     destination: '',
+    location_name: '',
+    latitude: '',
+    longitude: '',
     duration: '',
     price: '',
-    offer_price: '',
+    offer_price_calendar_json: '[]',
     package_type: 'domestic',
     status: 'draft',
     is_popular: false,
     itinerary_text: '',
     inclusions_text: '',
     exclusions_text: '',
+    included_features_json: '[]',
     seo_meta_title: '',
     seo_meta_description: '',
     featured_image: null,
@@ -62,7 +82,7 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
     og_description: '',
     schema_type: 'TourPackage',
   })
-  const [itinerary, setItinerary] = useState([{ id: 1, title: 'Arrival', description: 'Airport pickup and hotel check-in', meals: 'Dinner', hotel: 'Uno Grand', transport: 'SUV', travel_mode: 'day' }])
+  const [itinerary, setItinerary] = useState([{ id: 1, title: 'Arrival', description: 'Airport pickup and hotel check-in', meals: 'Dinner', hotel: 'Uno Grand', transport: 'SUV', travel_mode: 'day', image: '' }])
   const [faqs, setFaqs] = useState([{ id: 1, q: 'Best time to visit?', a: 'October to March for best weather.' }])
   const [taxonomy, setTaxonomy] = useState({
     primary_category: '',
@@ -88,6 +108,7 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
     router.get('/admin/packages', cleaned, options)
   }
   const setAdvancedField = (k, v) => setAdvanced((p) => ({ ...p, [k]: v }))
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
   const selectedPackageData = useMemo(() => {
     if (selectedPackage) return selectedPackage
     return packages?.data?.find((item) => item.id === editingPackageId || item.id === duplicatePackageId) || null
@@ -123,6 +144,11 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
   }, [advanced.sitemap_include, canonicalPreview])
 
   const schemaPreview = useMemo(() => {
+    const calendarPrices = parseOfferCalendar(data.offer_price_calendar_json)
+      .map((item) => Number(item?.offer_price || 0))
+      .filter((value) => Number.isFinite(value) && value > 0)
+    const effectiveOfferPrice = calendarPrices.length ? Math.min(...calendarPrices) : 0
+
     const payload = {
       '@context': 'https://schema.org',
       '@type': advanced.schema_type,
@@ -133,23 +159,28 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
       offers: {
         '@type': 'Offer',
         priceCurrency: 'INR',
-        price: data.offer_price || data.price || 0,
+        price: effectiveOfferPrice || data.price || 0,
         availability: 'https://schema.org/InStock',
       },
       ...(advanced.faq_schema ? { mainEntity: faqs.map((item) => ({ '@type': 'Question', name: item.q, acceptedAnswer: { '@type': 'Answer', text: item.a } })) } : {}),
     }
     return JSON.stringify(payload, null, 2)
-  }, [advanced.faq_schema, advanced.focus_keyword, advanced.schema_type, advanced.short_description, canonicalPreview, data.offer_price, data.price, data.seo_meta_description, data.title, faqs, suggestedKeyword])
+  }, [advanced.faq_schema, advanced.focus_keyword, advanced.schema_type, advanced.short_description, canonicalPreview, data.offer_price_calendar_json, data.price, data.seo_meta_description, data.title, faqs, suggestedKeyword])
 
   const completionPercent = useMemo(() => {
+    const hasCalendarOffer = parseOfferCalendar(data.offer_price_calendar_json).some((item) => {
+      const price = Number(item?.offer_price || 0)
+      return Number.isFinite(price) && price > 0
+    })
+
     const checks = [
       Boolean(data.title && data.destination && data.price),
       Boolean(data.seo_meta_title && data.seo_meta_description && advanced.focus_keyword),
       Boolean(data.featured_image || advanced.video_url),
-      Boolean(data.offer_price),
+      hasCalendarOffer,
     ]
     return Math.round((checks.filter(Boolean).length / checks.length) * 100)
-  }, [advanced.focus_keyword, advanced.video_url, data.destination, data.featured_image, data.offer_price, data.price, data.seo_meta_description, data.seo_meta_title, data.title])
+  }, [advanced.focus_keyword, advanced.video_url, data.destination, data.featured_image, data.offer_price_calendar_json, data.price, data.seo_meta_description, data.seo_meta_title, data.title])
 
   useEffect(() => {
     const totalDays = itinerary.length || 1
@@ -189,15 +220,24 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
     setData('title', selectedPackageData.title || '')
     setData('slug', nextSlug || '')
     setData('destination', selectedPackageData.destination || '')
+    setData('location_name', selectedPackageData.location_name || selectedPackageData.destination || '')
+    setData('latitude', selectedPackageData.latitude || '')
+    setData('longitude', selectedPackageData.longitude || '')
     setData('duration', selectedPackageData.duration || '')
     setData('price', selectedPackageData.price || '')
-    setData('offer_price', selectedPackageData.offer_price || '')
+    setData('offer_price_calendar_json', JSON.stringify(Array.isArray(selectedPackageData.offer_price_calendar) ? selectedPackageData.offer_price_calendar : []))
     setData('package_type', selectedPackageData.package_type || 'domestic')
     setData('status', selectedPackageData.status || 'draft')
     setData('is_popular', Boolean(selectedPackageData.is_popular))
-    setData('itinerary_text', Array.isArray(selectedPackageData.itinerary) ? selectedPackageData.itinerary.join('\n') : '')
+    setData(
+      'itinerary_text',
+      Array.isArray(selectedPackageData.itinerary) && selectedPackageData.itinerary.length && typeof selectedPackageData.itinerary[0] === 'string'
+        ? selectedPackageData.itinerary.join('\n')
+        : '',
+    )
     setData('inclusions_text', Array.isArray(selectedPackageData.inclusions) ? selectedPackageData.inclusions.join('\n') : '')
     setData('exclusions_text', Array.isArray(selectedPackageData.exclusions) ? selectedPackageData.exclusions.join('\n') : '')
+    setData('included_features_json', JSON.stringify(Array.isArray(selectedPackageData.included_features) ? selectedPackageData.included_features : []))
     setData('seo_meta_title', selectedPackageData.seo_meta_title || '')
     setData('seo_meta_description', selectedPackageData.seo_meta_description || '')
     setData('featured_image', null)
@@ -238,9 +278,14 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
       filter_priority: selectedPackageData.filter_priority || 1,
     }))
 
-    setItinerary(
-      Array.isArray(selectedPackageData.itinerary) && selectedPackageData.itinerary.length
-        ? selectedPackageData.itinerary.map((item, index) => ({
+    setItinerary(() => {
+      const raw = selectedPackageData.itinerary
+      if (!Array.isArray(raw) || raw.length === 0) {
+        return [{ id: Date.now(), title: 'Arrival', description: 'Airport pickup and hotel check-in', meals: 'Dinner', hotel: 'Uno Grand', transport: 'SUV', travel_mode: 'day', image: '' }]
+      }
+      return raw.map((item, index) => {
+        if (typeof item === 'string') {
+          return {
             id: Date.now() + index,
             title: item || `Day ${index + 1}`,
             description: '',
@@ -248,16 +293,40 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
             hotel: '',
             transport: '',
             travel_mode: 'day',
-          }))
-        : [{ id: 1, title: 'Arrival', description: 'Airport pickup and hotel check-in', meals: 'Dinner', hotel: 'Uno Grand', transport: 'SUV', travel_mode: 'day' }]
-    )
+            image: '',
+          }
+        }
+        if (item && typeof item === 'object' && !Array.isArray(item)) {
+          return {
+            id: item.id ?? Date.now() + index,
+            title: item.title ?? `Day ${index + 1}`,
+            description: item.description ?? '',
+            meals: item.meals ?? '',
+            hotel: item.hotel ?? '',
+            transport: item.transport ?? '',
+            travel_mode: item.travel_mode === 'night' ? 'night' : 'day',
+            image: item.image ?? '',
+          }
+        }
+        return {
+          id: Date.now() + index,
+          title: `Day ${index + 1}`,
+          description: '',
+          meals: '',
+          hotel: '',
+          transport: '',
+          travel_mode: 'day',
+          image: '',
+        }
+      })
+    })
 
     setFaqs(
       Array.isArray(selectedPackageData.faqs) && selectedPackageData.faqs.length
         ? selectedPackageData.faqs.map((item, index) => ({
             id: item.id || Date.now() + index,
-            q: item.question || '',
-            a: item.answer || '',
+            q: item.question ?? item.q ?? '',
+            a: item.answer ?? item.a ?? '',
           }))
         : [{ id: 1, q: 'Best time to visit?', a: 'October to March for best weather.' }]
     )
@@ -327,6 +396,10 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
       title: effectiveTitle,
       slug: effectiveSlug,
       destination: effectiveDestination,
+      location_name: (data.location_name || '').trim() || effectiveDestination,
+      latitude: data.latitude || null,
+      longitude: data.longitude || null,
+      offer_price: null,
       duration: effectiveDuration,
       price: effectivePrice,
       package_type: effectivePackageType,
@@ -359,7 +432,20 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
       seo_landing_pages: taxonomy.seo_landing_pages,
       homepage_display_category: taxonomy.homepage_display_category,
       filter_priority: taxonomy.filter_priority,
-      faqs: faqs.map((item) => ({ q: item.q, a: item.a })),
+      itinerary_json: JSON.stringify(
+        itinerary.map(({ title, description, meals, hotel, transport, travel_mode, image }) => ({
+          title: title || '',
+          description: description || '',
+          meals: meals || '',
+          hotel: hotel || '',
+          transport: transport || '',
+          travel_mode: travel_mode === 'night' ? 'night' : 'day',
+          image: image || '',
+        })),
+      ),
+      faqs_json: JSON.stringify(faqs.map((item) => ({ q: item.q || '', a: item.a || '' }))),
+      offer_price_calendar_json: data.offer_price_calendar_json || '[]',
+      included_features_json: data.included_features_json || '[]',
     }
 
     const onSuccess = () => {
@@ -421,6 +507,29 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
     setSlugTouched(slug.trim().length > 0 && slug !== slugify(data.title))
   }
 
+  const uploadPackageEditorImage = async (file) => {
+    const form = new FormData()
+    form.append('image', file)
+
+    const res = await fetch('/admin/packages/editor-image', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+      },
+      credentials: 'same-origin',
+      body: form,
+    })
+
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(payload.message || 'Image upload failed')
+    }
+
+    return payload.url || ''
+  }
+
   return (
     <>
       <Head title="Tour Packages" />
@@ -462,7 +571,7 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
 
           <AddPackageHeader onSubmit={submit} />
 
-          <div className="grid gap-5 xl:grid-cols-10">
+          <div className="grid gap-5 xl:grid-cols-10 xl:items-start">
             <div className="space-y-5 xl:col-span-7 [&_label>span]:text-slate-900">
               <BasicInfoSection
                 data={data}
@@ -471,6 +580,7 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
                 setAdvancedField={setAdvancedField}
                 onTitleChange={handleTitleChange}
                 onSlugChange={handleSlugChange}
+                onEditorImageUpload={uploadPackageEditorImage}
               />
               <CategoryTaxonomySection taxonomy={taxonomy} setTaxonomy={setTaxonomy} packageTitle={data.title} managedCategories={packageCategories} />
               <AddPackageWorkspace
@@ -478,6 +588,7 @@ export default function PackagesIndex({ packages, filters, destinations = [], se
                 setData={setData}
                 advanced={advanced}
                 setAdvancedField={setAdvancedField}
+                destinationOptions={destinationOptions}
                 itinerary={itinerary}
                 setItinerary={setItinerary}
                 faqs={faqs}

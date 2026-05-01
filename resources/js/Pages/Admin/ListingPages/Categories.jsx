@@ -1,6 +1,6 @@
-import { Head, router } from '@inertiajs/react'
+import { Head, router, usePage } from '@inertiajs/react'
 import { Layers, Plus, Search, Sparkles, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import AdminLayout from '../../../Layouts/AdminLayout'
 
 const defaultForm = { id: null, name: '', slug: '', status: 'active' }
@@ -14,11 +14,23 @@ const slugify = (value) =>
     .replace(/-+/g, '-')
 
 export default function ListingPageCategories({ categories = [], filters = {} }) {
+  const { url } = usePage()
   const rows = categories?.data || []
   const [form, setForm] = useState(defaultForm)
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState(filters.search || '')
   const [sort, setSort] = useState(filters.sort || 'name_asc')
+
+  useEffect(() => {
+    const qs = url.includes('?') ? url.slice(url.indexOf('?')) : ''
+    const params = new URLSearchParams(qs)
+    if (params.get('action') !== 'new') return
+    setForm({ ...defaultForm })
+    setOpen(true)
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', '/admin/listing-categories')
+    }
+  }, [url])
 
   const filtered = useMemo(
     () => rows.filter((row) =>

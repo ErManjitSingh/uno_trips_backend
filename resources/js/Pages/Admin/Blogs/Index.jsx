@@ -21,6 +21,15 @@ function scoreSeo(post) {
   return 'Low'
 }
 
+const toImageUrl = (path) => {
+  if (!path) return ''
+  const normalized = String(path).replace(/\\/g, '/').trim()
+  if (!normalized) return ''
+  if (/^https?:\/\//.test(normalized) || normalized.startsWith('data:')) return normalized
+  if (normalized.startsWith('/')) return normalized
+  return `/storage/${normalized.replace(/^\/+/, '')}`
+}
+
 export default function BlogsIndex({ posts, categories, authors = [] }) {
   const { props } = usePage()
   const [activeTab, setActiveTab] = useState('all')
@@ -258,7 +267,7 @@ export default function BlogsIndex({ posts, categories, authors = [] }) {
                       </td>
                       <td className="px-2 py-2">
                         <img
-                          src={blog.featured_image || 'https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&w=300&q=80'}
+                          src={toImageUrl(blog.featured_image) || 'https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&w=300&q=80'}
                           alt={blog.title}
                           className="h-12 w-16 rounded-lg object-cover"
                         />

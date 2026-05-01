@@ -1,7 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react'
-import { Editor } from '@tinymce/tinymce-react'
 import { useEffect, useMemo, useState } from 'react'
 import AdminLayout from '../../../Layouts/AdminLayout'
+import CustomRichTextEditor from '../../../Components/Blog/CustomRichTextEditor'
 
 const slugify = (value) =>
   value
@@ -34,8 +34,14 @@ const toStorageUrl = (path) => {
 export default function BlogCreate({ categories = [], tags = [], authors = [], post = null }) {
   const { props } = usePage()
   const [featuredPreview, setFeaturedPreview] = useState('')
+  const [slugTouched, setSlugTouched] = useState(false)
+  const [tagInput, setTagInput] = useState('')
+  const [tagItems, setTagItems] = useState([])
+  const [keywordInput, setKeywordInput] = useState('')
+  const [keywordItems, setKeywordItems] = useState([])
 
   const { data, setData, processing, errors } = useForm({
+    draft_id: '',
     title: '',
     slug: '',
     excerpt: '',
@@ -48,7 +54,18 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
     seo_meta_description: '',
     author_id: '',
     tag_ids: [],
+    tag_names: '',
     category_ids: [],
+    meta_keywords: '',
+    canonical_url: '',
+    robots: 'index,follow',
+    og_title: '',
+    og_description: '',
+    twitter_title: '',
+    twitter_description: '',
+    include_in_sitemap: true,
+    schema_type: 'BlogPosting',
+    schema_json: '',
   })
 
   const readTime = useMemo(() => calcReadTime(data.content), [data.content])
@@ -57,6 +74,7 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
   useEffect(() => {
     if (!post) return
     setData({
+      draft_id: post.id ? String(post.id) : '',
       title: post.title || '',
       slug: post.slug || '',
       excerpt: post.excerpt || '',
@@ -69,10 +87,127 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
       seo_meta_description: post.seo_meta_description || '',
       author_id: post.author_id ? String(post.author_id) : '',
       tag_ids: (post.tag_ids || []).map((id) => Number(id)),
+      tag_names: post.tag_names || '',
       category_ids: (post.category_ids || []).map((id) => Number(id)),
+      meta_keywords: post.meta_keywords || '',
+      canonical_url: post.canonical_url || '',
+      robots: post.robots || 'index,follow',
+      og_title: post.og_title || '',
+      og_description: post.og_description || '',
+      twitter_title: post.twitter_title || '',
+      twitter_description: post.twitter_description || '',
+      include_in_sitemap: typeof post.include_in_sitemap === 'boolean' ? post.include_in_sitemap : true,
+      schema_type: post.schema_type || 'BlogPosting',
+      schema_json: post.schema_json || '',
     })
     setFeaturedPreview(toStorageUrl(post.featured_image || ''))
+    setSlugTouched(true)
   }, [post, setData])
+
+  useEffect(() => {
+    const initialTags = String(post?.tag_names ?? '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+    setTagItems(initialTags)
+    setTagInput('')
+  }, [post?.id, post?.tag_names])
+
+  useEffect(() => {
+    setData('tag_names', tagItems.join(', '))
+  }, [setData, tagItems])
+
+  useEffect(() => {
+    const initialKeywords = String(post?.meta_keywords ?? '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+    setKeywordItems(initialKeywords)
+    setKeywordInput('')
+  }, [post?.id, post?.meta_keywords])
+
+  useEffect(() => {
+    setData('meta_keywords', keywordItems.join(', '))
+  }, [keywordItems, setData])
+
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+  const [autoSaveMessage, setAutoSaveMessage] = useState('')
+  const schemaAuto = useMemo(() => {
+    const payload = {
+      '@context': 'https://schema.org',
+      '@type': data.schema_type || 'BlogPosting',
+      headline: data.title || 'Blog title',
+      description: data.seo_meta_description || data.excerpt || 'Blog description',
+      mainEntityOfPage: data.canonical_url || (typeof window !== 'undefined' ? `${window.location.origin}/blog/${data.slug || 'your-slug'}` : `/blog/${data.slug || 'your-slug'}`),
+      keywords: data.meta_keywords || '',
+    }
+    return JSON.stringify(payload, null, 2)
+  }, [data.canonical_url, data.excerpt, data.meta_keywords, data.schema_type, data.seo_meta_description, data.slug, data.title])
+
+  const uploadEditorImage = async (file) => {
+    const form = new FormData()
+    form.append('image', file)
+
+    const res = await fetch('/admin/blogs/editor-image', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+      },
+      credentials: 'same-origin',
+      body: form,
+    })
+
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(payload.message || 'Image upload failed')
+    }
+
+    return payload.url || ''
+  }
+
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      if (processing) return
+      if (!data.title.trim() && !data.content.trim()) return
+
+      try {
+        const res = await fetch('/admin/blogs/autosave', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            draft_id: data.draft_id || null,
+            title: data.title,
+            slug: data.slug,
+            excerpt: data.excerpt,
+            tag_names: tagItems.join(', '),
+            content: data.content,
+            seo_meta_title: data.seo_meta_title,
+            seo_meta_description: data.seo_meta_description,
+          }),
+        })
+
+        const payload = await res.json().catch(() => ({}))
+        if (!res.ok) return
+
+        if (payload.draft_id && String(payload.draft_id) !== String(data.draft_id || '')) {
+          setData('draft_id', String(payload.draft_id))
+        }
+        setAutoSaveMessage(`Draft auto-saved at ${new Date().toLocaleTimeString()}`)
+      } catch {
+        // Ignore autosave errors silently; manual save still works.
+      }
+    }, 10000)
+
+    return () => clearInterval(timer)
+  }, [csrfToken, data.content, data.draft_id, data.excerpt, data.seo_meta_description, data.seo_meta_title, data.slug, data.title, processing, setData, tagItems])
 
   const onFeaturedFile = (file) => {
     if (!file) return
@@ -93,13 +228,92 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
     setData(key, next)
   }
 
-  const onSubmit = (e) => {
-    e.preventDefault()
-    if (post?.id) {
-      router.post(`/admin/blogs/${post.id}`, { ...data, _method: 'PUT' }, { forceFormData: true })
+  const addTagFromInput = (rawValue) => {
+    const value = String(rawValue || '').trim()
+    if (!value) return
+    setTagItems((prev) => {
+      if (prev.some((item) => item.toLowerCase() === value.toLowerCase())) return prev
+      return [...prev, value]
+    })
+  }
+
+  const onTagInputChange = (e) => {
+    const value = e.target.value
+    if (value.includes(',')) {
+      const parts = value.split(',')
+      parts.slice(0, -1).forEach((part) => addTagFromInput(part))
+      setTagInput(parts[parts.length - 1].trimStart())
       return
     }
-    router.post('/admin/blogs', data, { forceFormData: true })
+    setTagInput(value)
+  }
+
+  const onTagInputKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      addTagFromInput(tagInput)
+      setTagInput('')
+      return
+    }
+
+    if (e.key === 'Backspace' && !tagInput && tagItems.length) {
+      setTagItems((prev) => prev.slice(0, -1))
+    }
+  }
+
+  const removeTag = (index) => {
+    setTagItems((prev) => prev.filter((_, idx) => idx !== index))
+  }
+
+  const addKeywordFromInput = (rawValue) => {
+    const value = String(rawValue || '').trim()
+    if (!value) return
+    setKeywordItems((prev) => {
+      if (prev.some((item) => item.toLowerCase() === value.toLowerCase())) return prev
+      return [...prev, value]
+    })
+  }
+
+  const onKeywordInputChange = (e) => {
+    const value = e.target.value
+    if (value.includes(',')) {
+      const parts = value.split(',')
+      parts.slice(0, -1).forEach((part) => addKeywordFromInput(part))
+      setKeywordInput(parts[parts.length - 1].trimStart())
+      return
+    }
+    setKeywordInput(value)
+  }
+
+  const onKeywordInputKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      addKeywordFromInput(keywordInput)
+      setKeywordInput('')
+      return
+    }
+
+    if (e.key === 'Backspace' && !keywordInput && keywordItems.length) {
+      setKeywordItems((prev) => prev.slice(0, -1))
+    }
+  }
+
+  const removeKeyword = (index) => {
+    setKeywordItems((prev) => prev.filter((_, idx) => idx !== index))
+  }
+
+  const onSubmit = (e) => {
+    e.preventDefault()
+    const payload = {
+      ...data,
+      schema_json: (data.schema_json || '').trim() || schemaAuto,
+    }
+
+    if (post?.id) {
+      router.post(`/admin/blogs/${post.id}`, { ...payload, _method: 'PUT' }, { forceFormData: true })
+      return
+    }
+    router.post('/admin/blogs', payload, { forceFormData: true })
   }
 
   return (
@@ -112,16 +326,21 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
             <input
               value={data.title}
               onChange={(e) => {
-                setData('title', e.target.value)
-                if (!data.slug) setData('slug', slugify(e.target.value))
-                if (!data.seo_meta_title) setData('seo_meta_title', e.target.value)
+                const title = e.target.value
+                setData('title', title)
+                if (!slugTouched) setData('slug', slugify(title))
+                if (!data.seo_meta_title) setData('seo_meta_title', title)
               }}
               placeholder="Blog Title"
               className="w-full rounded-xl border border-slate-200 px-4 py-3 text-2xl font-semibold outline-none focus:border-indigo-400"
             />
             <input
               value={data.slug}
-              onChange={(e) => setData('slug', e.target.value)}
+              onChange={(e) => {
+                const next = slugify(e.target.value)
+                setData('slug', next)
+                setSlugTouched(next !== slugify(data.title))
+              }}
               placeholder="slug-auto-generate"
               className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
             />
@@ -137,20 +356,7 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200">
-            <Editor
-              value={data.content}
-              onEditorChange={(value) => setData('content', value)}
-              init={{
-                height: 520,
-                menubar: false,
-                plugins: 'lists link image table code autoresize',
-                toolbar:
-                  'undo redo | blocks | bold italic underline | bullist numlist | link image table | code',
-                branding: false,
-              }}
-            />
-          </div>
+          <CustomRichTextEditor value={data.content} onChange={(value) => setData('content', value)} onImageUpload={uploadEditorImage} />
         </section>
 
         <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
@@ -170,17 +376,36 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
               ))}
             </div>
             <p className="mb-2 text-xs font-semibold text-slate-600">Tags (multi-select)</p>
-            <div className="max-h-40 space-y-1 overflow-auto rounded-lg border border-slate-200 p-2">
-              {tags.map((tag) => (
-                <label key={tag.id} className="flex items-center gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={data.tag_ids.includes(tag.id)}
-                    onChange={() => toggleMultiValue('tag_ids', tag.id)}
-                  />
-                  <span>{tag.name}</span>
-                </label>
-              ))}
+            <div className="space-y-2 rounded-lg border border-slate-200 p-2">
+              <input
+                value={tagInput}
+                onChange={onTagInputChange}
+                onKeyDown={onTagInputKeyDown}
+                onBlur={() => {
+                  if (!tagInput.trim()) return
+                  addTagFromInput(tagInput)
+                  setTagInput('')
+                }}
+                placeholder="e.g. goa, honeymoon, summer travel, family tour"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              />
+              {tagItems.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {tagItems.map((tag, idx) => (
+                    <button
+                      key={`${tag}-${idx}`}
+                      type="button"
+                      onClick={() => removeTag(idx)}
+                      className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+                      title="Click to remove tag"
+                    >
+                      {tag} ×
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <p className="text-[11px] text-slate-500">Comma se separate karein. Tags auto create + assign ho jayenge.</p>
+              {tags.length ? <p className="text-[11px] text-slate-400">Suggestions: {tags.slice(0, 12).map((tag) => tag.name).join(', ')}</p> : null}
             </div>
           </section>
 
@@ -219,11 +444,67 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
             <h3 className="mb-3 text-sm font-semibold text-slate-800">SEO Control</h3>
             <input value={data.seo_meta_title} onChange={(e) => setData('seo_meta_title', e.target.value)} placeholder="SEO Title" className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             <textarea value={data.seo_meta_description} onChange={(e) => setData('seo_meta_description', e.target.value)} placeholder="Meta Description" rows={3} className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-            <input value={data.focus_keyword} onChange={(e) => setData('focus_keyword', e.target.value)} placeholder="Focus Keyword" className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-            <input value={data.keywords} onChange={(e) => setData('keywords', e.target.value)} placeholder="Keywords (comma separated)" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <div className="mb-2 space-y-2 rounded-lg border border-slate-200 p-2">
+              <input
+                value={keywordInput}
+                onChange={onKeywordInputChange}
+                onKeyDown={onKeywordInputKeyDown}
+                onBlur={() => {
+                  if (!keywordInput.trim()) return
+                  addKeywordFromInput(keywordInput)
+                  setKeywordInput('')
+                }}
+                placeholder="Meta Keywords (comma separated)"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              />
+              {keywordItems.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {keywordItems.map((keyword, idx) => (
+                    <button
+                      key={`${keyword}-${idx}`}
+                      type="button"
+                      onClick={() => removeKeyword(idx)}
+                      className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                      title="Click to remove keyword"
+                    >
+                      {keyword} ×
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <input value={data.canonical_url} onChange={(e) => setData('canonical_url', e.target.value)} placeholder="Canonical URL" className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <select value={data.robots} onChange={(e) => setData('robots', e.target.value)} className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <option value="index,follow">index,follow</option>
+              <option value="index,nofollow">index,nofollow</option>
+              <option value="noindex,follow">noindex,follow</option>
+              <option value="noindex,nofollow">noindex,nofollow</option>
+            </select>
+            <input value={data.og_title} onChange={(e) => setData('og_title', e.target.value)} placeholder="OG Title" className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <textarea value={data.og_description} onChange={(e) => setData('og_description', e.target.value)} placeholder="OG Description" rows={2} className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <input value={data.twitter_title} onChange={(e) => setData('twitter_title', e.target.value)} placeholder="Twitter Title" className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <textarea value={data.twitter_description} onChange={(e) => setData('twitter_description', e.target.value)} placeholder="Twitter Description" rows={2} className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <label className="mb-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <input type="checkbox" checked={Boolean(data.include_in_sitemap)} onChange={(e) => setData('include_in_sitemap', e.target.checked)} />
+              Include in sitemap
+            </label>
+            <select value={data.schema_type} onChange={(e) => setData('schema_type', e.target.value)} className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <option value="BlogPosting">BlogPosting</option>
+              <option value="Article">Article</option>
+              <option value="NewsArticle">NewsArticle</option>
+              <option value="HowTo">HowTo</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => setData('schema_json', schemaAuto)}
+              className="mb-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700"
+            >
+              Auto Generate Schema
+            </button>
+            <textarea value={data.schema_json || schemaAuto} onChange={(e) => setData('schema_json', e.target.value)} placeholder="JSON-LD Schema" rows={6} className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs" />
             <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs">
               <p className="truncate text-blue-700">{data.seo_meta_title || data.title || 'SEO Title Preview'}</p>
-              <p className="truncate text-emerald-700">https://example.com/blog/{data.slug || 'blog-slug'}</p>
+              <p className="truncate text-emerald-700">{data.canonical_url || `https://example.com/blog/${data.slug || 'blog-slug'}`}</p>
               <p className="mt-1 line-clamp-2 text-slate-600">{data.seo_meta_description || 'Meta description preview appears here.'}</p>
             </div>
           </section>
@@ -244,6 +525,7 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
           <button disabled={processing} className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30">
             {processing ? 'Saving...' : post ? 'Update Blog Post' : 'Save Blog Post'}
           </button>
+          {autoSaveMessage ? <p className="text-xs text-slate-500">{autoSaveMessage}</p> : null}
           {props.flash?.success && <p className="text-sm text-emerald-600">{props.flash.success}</p>}
         </aside>
       </form>

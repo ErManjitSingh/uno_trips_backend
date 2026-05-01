@@ -56,11 +56,16 @@ class TourController extends Controller
 
     public function show(TourPackage $tourPackage, SeoResolver $seoResolver): Response
     {
+        $canonicalUrl = $tourPackage->canonical_url ?: route('tours.show', $tourPackage);
+
         return Inertia::render('Web/Tours/Show', [
             'seo' => $seoResolver->forModel('tour_package', $tourPackage->id, [
                 'title' => $tourPackage->seo_meta_title ?: $tourPackage->title,
                 'description' => $tourPackage->seo_meta_description ?: ($tourPackage->short_description ?: $tourPackage->title),
-                'canonical_url' => route('tours.show', $tourPackage),
+                'canonical_url' => $canonicalUrl,
+                'og_title' => $tourPackage->og_title ?: ($tourPackage->seo_meta_title ?: $tourPackage->title),
+                'og_description' => $tourPackage->og_description ?: ($tourPackage->seo_meta_description ?: ($tourPackage->short_description ?: $tourPackage->title)),
+                'robots' => $tourPackage->robots ?: 'index,follow',
             ]),
             'tour' => $tourPackage->load([
                 'faqs',

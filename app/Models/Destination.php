@@ -9,7 +9,10 @@ class Destination extends Model
     protected $fillable = [
         'name',
         'slug',
+        'country',
         'state',
+        'district',
+        'city',
         'short_description',
         'description',
         'hero_image',

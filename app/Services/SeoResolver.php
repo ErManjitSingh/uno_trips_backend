@@ -43,22 +43,20 @@ class SeoResolver
         $title = $meta['meta_title'] ?? ($fallback['title'] ?? ($settings?->seo_meta_title ?? 'UNO Trips'));
         $description = $meta['meta_description'] ?? ($fallback['description'] ?? ($settings?->seo_meta_description ?? ''));
         $canonical = $meta['canonical_url'] ?? ($fallback['canonical_url'] ?? null);
-        $ogTitle = $meta['og_title'] ?? $title;
-        $ogDescription = $meta['og_description'] ?? $description;
+        $ogTitle = $meta['og_title'] ?? ($fallback['og_title'] ?? $title);
+        $ogDescription = $meta['og_description'] ?? ($fallback['og_description'] ?? $description);
         $ogImage = $meta['og_image'] ?? ($settings?->seo_og_image ? asset('storage/'.$settings->seo_og_image) : null);
-        $twitterTitle = $meta['twitter_title'] ?? $title;
-        $twitterDescription = $meta['twitter_description'] ?? $description;
+        $twitterTitle = $meta['twitter_title'] ?? ($fallback['twitter_title'] ?? $ogTitle);
+        $twitterDescription = $meta['twitter_description'] ?? ($fallback['twitter_description'] ?? $ogDescription);
         $twitterImage = $meta['twitter_image'] ?? $ogImage;
+        $robots = $this->resolveRobots($meta, $fallback);
 
         return [
             'title' => $title,
             'description' => $description,
             'keywords' => $meta['meta_keywords'] ?? ($settings?->seo_keywords ?? ''),
             'canonical_url' => $canonical,
-            'robots' => [
-                'index' => (bool) ($meta['robots_index'] ?? true),
-                'follow' => (bool) ($meta['robots_follow'] ?? true),
-            ],
+            'robots' => $robots,
             'og' => [
                 'title' => $ogTitle,
                 'description' => $ogDescription,
@@ -81,6 +79,26 @@ class SeoResolver
         }
 
         return asset($value);
+    }
+
+    private function resolveRobots(array $meta, array $fallback): array
+    {
+        if (array_key_exists('robots_index', $meta) || array_key_exists('robots_follow', $meta)) {
+            return [
+                'index' => (bool) ($meta['robots_index'] ?? true),
+                'follow' => (bool) ($meta['robots_follow'] ?? true),
+            ];
+        }
+
+        $fallbackRobots = strtolower(trim((string) ($fallback['robots'] ?? '')));
+        if ($fallbackRobots !== '') {
+            return [
+                'index' => ! str_contains($fallbackRobots, 'noindex'),
+                'follow' => ! str_contains($fallbackRobots, 'nofollow'),
+            ];
+        }
+
+        return ['index' => true, 'follow' => true];
     }
 }
 

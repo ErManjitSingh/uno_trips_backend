@@ -264,7 +264,7 @@ export default function AllPackagesPanel({ packages, filters, destinations, upda
                 <td>
                   <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">{pkg.package_type || 'general'}</span>
                 </td>
-                <td className="text-slate-600">{pkg.destination}</td>
+                <td className="text-slate-600">{pkg.location_name || pkg.destination}</td>
                 <td className="text-slate-700">
                   <p className="font-medium">INR {Number(pkg.offer_price || pkg.price || 0).toLocaleString()}</p>
                   {pkg.offer_price ? (

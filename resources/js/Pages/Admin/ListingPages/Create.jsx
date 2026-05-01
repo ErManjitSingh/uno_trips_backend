@@ -1,8 +1,8 @@
 import { Head, router, usePage } from '@inertiajs/react'
 import { useMemo, useState } from 'react'
-import { Editor } from '@tinymce/tinymce-react'
 import { GripVertical, Search, Sparkles, X } from 'lucide-react'
 import AdminLayout from '../../../Layouts/AdminLayout'
+import CustomRichTextEditor from '../../../Components/Blog/CustomRichTextEditor'
 import TabNav from '../../../Components/ListingBuilder/TabNav'
 import SectionCard from '../../../Components/ListingBuilder/SectionCard'
 import TagMultiSelect from '../../../Components/ListingBuilder/TagMultiSelect'
@@ -50,6 +50,13 @@ function packageImageUrl(imagePath) {
   if (!imagePath) return ''
   if (String(imagePath).startsWith('http')) return imagePath
   return `/storage/${imagePath}`
+}
+
+function parseCommaValues(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function scoreSeo(form) {
@@ -122,6 +129,11 @@ export default function ListingPageCreate({ listingPage, destinations = [], cate
   const [blogSearch, setBlogSearch] = useState('')
   const [linkSearch, setLinkSearch] = useState('')
   const [dragIndex, setDragIndex] = useState(null)
+  const [highlightRows, setHighlightRows] = useState(() => {
+    const parsed = parseCommaValues(initialForm.highlights)
+    return parsed.length ? parsed : ['']
+  })
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
 
   const seoScore = scoreSeo(form)
   const filteredBlogs = blogs.filter((b) => b.title.toLowerCase().includes(blogSearch.toLowerCase()))
@@ -195,6 +207,38 @@ export default function ListingPageCreate({ listingPage, destinations = [], cate
     next.splice(index, 0, moved)
     setForm((prev) => ({ ...prev, manual_packages: next }))
     setDragIndex(null)
+  }
+
+  const syncHighlights = (rows) => {
+    const nextRows = rows.length ? rows : ['']
+    setHighlightRows(nextRows)
+    setForm((prev) => ({
+      ...prev,
+      highlights: nextRows.map((item) => item.trim()).filter(Boolean).join(', '),
+    }))
+  }
+
+  const uploadEditorImage = async (file) => {
+    const formData = new FormData()
+    formData.append('image', file)
+
+    const res = await fetch('/admin/blogs/editor-image', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+      },
+      credentials: 'same-origin',
+      body: formData,
+    })
+
+    const payload = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(payload.message || 'Image upload failed')
+    }
+
+    return payload.url || ''
   }
 
   const submit = (e) => {
@@ -436,12 +480,53 @@ export default function ListingPageCreate({ listingPage, destinations = [], cate
           {activeTab === 'Content' ? (
             <div className="space-y-4">
               <SectionCard title="Short Description">
-                <Editor value={form.short_description} onEditorChange={(value) => setForm((p) => ({ ...p, short_description: value }))} init={{ height: 220, menubar: false, plugins: 'link lists', toolbar: 'undo redo | bold italic | bullist numlist | link' }} />
+                <CustomRichTextEditor
+                  value={form.short_description}
+                  onChange={(value) => setForm((p) => ({ ...p, short_description: value }))}
+                  onImageUpload={uploadEditorImage}
+                />
               </SectionCard>
               <SectionCard title="Read More Content">
-                <Editor value={form.read_more} onEditorChange={(value) => setForm((p) => ({ ...p, read_more: value }))} init={{ height: 220, menubar: false, plugins: 'link lists', toolbar: 'undo redo | bold italic | bullist numlist | link' }} />
+                <CustomRichTextEditor
+                  value={form.read_more}
+                  onChange={(value) => setForm((p) => ({ ...p, read_more: value }))}
+                  onImageUpload={uploadEditorImage}
+                />
               </SectionCard>
-              <label className="text-sm font-medium text-slate-700">Highlights (comma separated)<input placeholder="e.g. Premium hotels, Local guide, Airport transfer" className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm" value={form.highlights} onChange={(e) => setForm((p) => ({ ...p, highlights: e.target.value }))} /></label>
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-indigo-800">Highlights</p>
+                  <button
+                    type="button"
+                    onClick={() => syncHighlights([...highlightRows, ''])}
+                    className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                  >
+                    + Add Highlight
+                  </button>
+                </div>
+                <p className="mt-1 text-[11px] text-indigo-700/80">Inclusion-style highlights list for listing page header/SEO blocks.</p>
+                <div className="mt-3 space-y-2">
+                  {highlightRows.map((item, idx) => (
+                    <div key={`highlight-${idx}`} className="group flex items-start gap-2 rounded-xl border border-indigo-100 bg-white p-2 shadow-sm">
+                      <span className="mt-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-indigo-100 px-1 text-[11px] font-semibold text-indigo-700">{idx + 1}</span>
+                      <input
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-400"
+                        value={item}
+                        onChange={(e) => syncHighlights(highlightRows.map((value, index) => (index === idx ? e.target.value : value)))}
+                        placeholder="e.g. Premium hotels"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => syncHighlights(highlightRows.length <= 1 ? [''] : highlightRows.filter((_, index) => index !== idx))}
+                        className="mt-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-600 opacity-70 transition hover:bg-rose-100 group-hover:opacity-100"
+                        title="Remove highlight"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div className="rounded-xl border p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm font-semibold text-slate-800">FAQs</p>

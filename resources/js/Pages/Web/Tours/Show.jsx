@@ -1,6 +1,31 @@
 import { Head, useForm } from '@inertiajs/react'
 import { useState } from 'react'
+import { Car, Landmark, MapPinned, Utensils, Hotel, ShieldCheck } from 'lucide-react'
 import WebLayout from '../../../Layouts/WebLayout'
+
+function itineraryImgSrc(src) {
+  if (!src || typeof src !== 'string') return ''
+  const t = src.trim()
+  if (t.startsWith('http://') || t.startsWith('https://')) {
+    try {
+      const u = new URL(t)
+      return `${u.pathname}${u.search || ''}`
+    } catch {
+      return t
+    }
+  }
+  if (t.startsWith('/')) return t
+  return `/storage/${t.replace(/^\//, '')}`
+}
+
+const featureIconMap = {
+  car: Car,
+  utensils: Utensils,
+  hotel: Hotel,
+  map: MapPinned,
+  landmark: Landmark,
+  shield: ShieldCheck,
+}
 
 export default function TourShow({ tour, related = [], seo }) {
   const { data, setData, post, processing } = useForm({ name: '', phone: '', email: '', message: `Inquiry for ${tour.title}`, source: 'tour_detail' })
@@ -19,6 +44,8 @@ export default function TourShow({ tour, related = [], seo }) {
     },
   }
 
+  const includedFeatures = Array.isArray(tour.included_features) ? tour.included_features : []
+
   return (
     <WebLayout title={tour.seo_meta_title || tour.title} description={tour.seo_meta_description || tour.title} seo={seo}>
       <Head>
@@ -29,6 +56,21 @@ export default function TourShow({ tour, related = [], seo }) {
           <p className="text-xs text-amber-300">{tour.destination}</p>
           <h1 className="mt-2 text-4xl font-semibold">{tour.title}</h1>
           <p className="mt-3 text-slate-300">{tour.duration}</p>
+          {includedFeatures.length ? (
+            <div className="mt-5 grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-2 lg:grid-cols-4">
+              {includedFeatures.map((item, idx) => {
+                const Icon = featureIconMap[item?.icon] || ShieldCheck
+                return (
+                  <div key={`${item?.key || 'feature'}-${idx}`} className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/40 px-3 py-2">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-300/15 text-amber-300">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="text-xs font-medium text-slate-200">{item?.label || 'Included'}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
             <h2 className="text-xl font-semibold">Inclusions</h2>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-300">
@@ -36,14 +78,38 @@ export default function TourShow({ tour, related = [], seo }) {
             </ul>
           </div>
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+            <h2 className="text-xl font-semibold">Exclusions</h2>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-300">
+              {(tour.exclusions || []).map((item, idx) => <li key={idx}>{item}</li>)}
+            </ul>
+          </div>
+          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
             <h2 className="text-xl font-semibold">Day-wise Itinerary</h2>
             <div className="mt-4 space-y-3">
-              {(tour.itinerary || []).map((line, idx) => (
-                <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
-                  <p className="text-xs text-amber-300">Day {idx + 1}</p>
-                  <p className="mt-1 text-sm text-slate-200">{line}</p>
-                </div>
-              ))}
+              {(tour.itinerary || []).map((item, idx) => {
+                const isObj = item && typeof item === 'object' && !Array.isArray(item)
+                const title = isObj ? (item.title || `Day ${idx + 1}`) : `Day ${idx + 1}`
+                const body = isObj
+                  ? [
+                      item.description,
+                      item.meals ? `Meals: ${item.meals}` : '',
+                      item.hotel ? `Hotel: ${item.hotel}` : '',
+                      item.transport ? `Transport: ${item.transport}` : '',
+                    ]
+                      .filter(Boolean)
+                      .join('\n')
+                  : String(item ?? '')
+                const dayImage = isObj && item.image ? itineraryImgSrc(item.image) : ''
+                return (
+                  <div key={idx} className="rounded-xl border border-white/10 bg-slate-900/50 p-3">
+                    <p className="text-xs text-amber-300">{title}</p>
+                    {dayImage ? (
+                      <img src={dayImage} alt="" className="mt-2 max-h-56 w-full rounded-lg border border-white/10 object-cover" loading="lazy" />
+                    ) : null}
+                    <p className="mt-1 whitespace-pre-line text-sm text-slate-200">{body || '—'}</p>
+                  </div>
+                )
+              })}
             </div>
           </div>
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">

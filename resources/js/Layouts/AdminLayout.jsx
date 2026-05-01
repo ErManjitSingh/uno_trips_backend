@@ -9,7 +9,6 @@ import {
     BriefcaseBusiness,
     ChevronDown,
     Compass,
-    FolderKanban,
     Gauge,
     Image,
     Layers,
@@ -72,6 +71,26 @@ const menuGroups = [
         ],
     },
     {
+        key: "listing-page-control",
+        label: "Listing Page Control",
+        icon: Layers,
+        children: [
+            { href: "/admin/listing-pages", label: "All listing pages" },
+            {
+                href: "/admin/listing-pages/create",
+                label: "Add New listing page",
+            },
+            {
+                href: "/admin/listing-categories",
+                label: "Category listing page",
+            },
+            {
+                href: "/admin/listing-categories?action=new",
+                label: "Add new listing page category",
+            },
+        ],
+    },
+    {
         key: "blog-control",
         label: "Blog Control",
         icon: BookOpenText,
@@ -79,21 +98,10 @@ const menuGroups = [
             { href: "/admin/blogs", label: "All Posts" },
             { href: "/admin/blogs/create", label: "Add New Blog" },
             { href: "/admin/blog-categories", label: "Categories" },
-            { href: "/admin/blog-tags", label: "Tags" },
             { href: "/admin/blog-comments", label: "Comments" },
             { href: "/admin/blogs/drafts", label: "Draft Posts" },
             { href: "/admin/blogs?tab=seo", label: "SEO Meta Manager" },
             { href: "/admin/blogs?tab=featured", label: "Featured Articles" },
-        ],
-    },
-    {
-        key: "listing-pages",
-        label: "Listing Pages",
-        icon: Layers,
-        children: [
-            { href: "/admin/listing-pages", label: "All Listing Pages" },
-            { href: "/admin/listing-pages/create", label: "Create Listing Page" },
-            { href: "/admin/listing-categories", label: "Listing Categories" },
         ],
     },
     {
@@ -175,11 +183,46 @@ const badgeStyles = {
     emerald: "bg-emerald-100 text-emerald-700",
 };
 
-function isItemActive(url, href) {
-    if (href.includes("?")) {
-        return url === href;
+function parseRelativeUrl(input) {
+    try {
+        const parsed = new URL(input, "http://localhost");
+        return {
+            pathname: parsed.pathname,
+            searchParams: parsed.searchParams,
+        };
+    } catch {
+        return {
+            pathname: input.split("?")[0] || input,
+            searchParams: new URLSearchParams(input.split("?")[1] || ""),
+        };
     }
-    return url === href || url.startsWith(href + "/");
+}
+
+function isItemActive(url, href) {
+    if (!href) return false;
+
+    const current = parseRelativeUrl(url || "");
+    const target = parseRelativeUrl(href);
+
+    const pathMatches =
+        current.pathname === target.pathname ||
+        current.pathname.startsWith(target.pathname + "/");
+
+    if (!pathMatches) return false;
+
+    // If menu item declares query params, ensure they are present in current URL.
+    const targetEntries = [...target.searchParams.entries()];
+    if (!targetEntries.length) return true;
+
+    return targetEntries.every(
+        ([key, value]) => current.searchParams.get(key) === value,
+    );
+}
+
+function getItemActiveScore(url, href) {
+    if (!isItemActive(url, href)) return -1;
+    if (url === href) return 10000 + href.length; // prefer exact match first
+    return href.length; // then prefer most specific prefix
 }
 
 export default function AdminLayout({ title, children }) {
@@ -194,6 +237,7 @@ export default function AdminLayout({ title, children }) {
     const [openGroup, setOpenGroup] = useState(
         () => localStorage.getItem("admin_sidebar_open") || "dashboard",
     );
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const { showWarning, countdownSeconds, stayLoggedIn, logoutNow } =
         useAdminAutoLogout();
 
@@ -214,20 +258,40 @@ export default function AdminLayout({ title, children }) {
         localStorage.setItem("admin_sidebar_open", openGroup);
     }, [openGroup]);
 
+    useEffect(() => {
+        setMobileNavOpen(false);
+    }, [url]);
+
+    useEffect(() => {
+        const direct = menuGroups.find(
+            (g) => g.href && isItemActive(url, g.href),
+        );
+        if (direct) {
+            setOpenGroup(direct.key);
+            return;
+        }
+        const withChild = menuGroups.find((g) =>
+            g.children?.some((item) => isItemActive(url, item.href)),
+        );
+        if (withChild) {
+            setOpenGroup(withChild.key);
+        }
+    }, [url]);
+
     const filteredGroups = useMemo(() => {
         if (!search.trim()) return menuGroups;
         const term = search.toLowerCase();
         return menuGroups
             .map((group) => ({
                 ...group,
-                children: group.children.filter((item) =>
+                children: (group.children || []).filter((item) =>
                     item.label.toLowerCase().includes(term),
                 ),
             }))
             .filter(
                 (group) =>
                     group.label.toLowerCase().includes(term) ||
-                    group.children.length > 0,
+                    (group.children && group.children.length > 0),
             );
     }, [search]);
 
@@ -261,8 +325,22 @@ export default function AdminLayout({ title, children }) {
             }
         >
             <div className="flex h-full">
+                <button
+                    type="button"
+                    aria-label="Close menu"
+                    className={`fixed inset-0 z-40 bg-stone-900/50 backdrop-blur-sm transition-opacity md:hidden ${
+                        mobileNavOpen
+                            ? "opacity-100"
+                            : "pointer-events-none opacity-0"
+                    }`}
+                    onClick={() => setMobileNavOpen(false)}
+                />
                 <aside
-                    className="relative hidden h-screen shrink-0 overflow-hidden border-r border-amber-200/70 bg-amber-100/60 p-4 shadow-[0_10px_40px_rgba(120,53,15,0.10)] backdrop-blur-xl transition-all duration-200 md:block md:w-[280px] dark:border-stone-700/80 dark:bg-stone-900"
+                    className={`relative z-50 flex h-screen w-[280px] shrink-0 overflow-hidden border-r border-amber-200/70 bg-amber-100/60 p-4 shadow-[0_10px_40px_rgba(120,53,15,0.10)] backdrop-blur-xl transition-transform duration-200 dark:border-stone-700/80 dark:bg-stone-900 md:static md:translate-x-0 ${
+                        mobileNavOpen
+                            ? "fixed left-0 top-0 translate-x-0"
+                            : "fixed left-0 top-0 -translate-x-full md:translate-x-0"
+                    }`}
                 >
                     <div className="pointer-events-none absolute inset-0">
                         <div className="absolute -left-10 top-20 h-32 w-32 rounded-full bg-blue-400/20 blur-3xl dark:bg-blue-500/20" />
@@ -315,8 +393,27 @@ export default function AdminLayout({ title, children }) {
                                     const Icon = group.icon;
                                     const activeChildIndex = group.href
                                         ? -1
-                                        : group.children.findIndex((item) =>
-                                              isItemActive(url, item.href),
+                                        : group.children.reduce(
+                                              (bestIndex, item, idx) => {
+                                                  const score =
+                                                      getItemActiveScore(
+                                                          url,
+                                                          item.href,
+                                                      );
+                                                  const bestScore =
+                                                      bestIndex === -1
+                                                          ? -1
+                                                          : getItemActiveScore(
+                                                                url,
+                                                                group.children[
+                                                                    bestIndex
+                                                                ].href,
+                                                            );
+                                                  return score > bestScore
+                                                      ? idx
+                                                      : bestIndex;
+                                              },
+                                              -1,
                                           );
                                     const groupActive = group.href
                                         ? isItemActive(url, group.href)
@@ -447,8 +544,16 @@ export default function AdminLayout({ title, children }) {
 
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-amber-200 bg-white/95 px-5 backdrop-blur dark:border-stone-700 dark:bg-stone-950/90">
-                        <div>
-                            <h1 className="text-lg font-semibold text-stone-800 dark:text-amber-50">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setMobileNavOpen(true)}
+                                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-amber-200 bg-white text-stone-600 hover:bg-amber-100 md:hidden dark:border-stone-700 dark:bg-stone-900 dark:text-amber-100 dark:hover:bg-stone-800"
+                                aria-label="Open menu"
+                            >
+                                <Menu className="h-5 w-5" />
+                            </button>
+                            <h1 className="truncate text-lg font-semibold text-stone-800 dark:text-amber-50">
                                 {title}
                             </h1>
                         </div>

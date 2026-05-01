@@ -8,9 +8,11 @@ use App\Models\Faq;
 use App\Models\PackageCategory;
 use App\Models\TourPackage;
 use App\Support\ImageVariantManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -28,7 +30,7 @@ class TourPackageController extends Controller
             'search' => ['nullable', 'string', 'max:150'],
             'status' => ['nullable', Rule::in(['draft', 'published'])],
             'package_type' => ['nullable', Rule::in(['domestic', 'international', 'honeymoon', 'family', 'adventure'])],
-            'destination' => ['nullable', 'string', 'max:120'],
+            'destination' => ['nullable', 'string', 'max:190'],
             'edit' => ['nullable', 'integer'],
             'duplicate' => ['nullable', 'integer'],
         ]);
@@ -45,12 +47,13 @@ class TourPackageController extends Controller
                 $query->where(function ($nested) use ($search): void {
                     $nested->where('title', 'like', "%{$search}%")
                         ->orWhere('destination', 'like', "%{$search}%")
+                        ->orWhere('location_name', 'like', "%{$search}%")
                         ->orWhere('slug', 'like', "%{$search}%");
                 });
             })
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['package_type'] ?? null, fn ($query, $type) => $query->where('package_type', $type))
-            ->when($filters['destination'] ?? null, fn ($query, $destination) => $query->where('destination', $destination))
+            ->when($filters['destination'] ?? null, fn ($query, $destination) => $query->where('location_name', $destination))
             ->latest()
             ->paginate(12)
             ->withQueryString();
@@ -74,7 +77,14 @@ class TourPackageController extends Controller
                 'edit' => $filters['edit'] ?? null,
                 'duplicate' => $filters['duplicate'] ?? null,
             ],
-            'destinations' => TourPackage::query()->select('destination')->distinct()->orderBy('destination')->pluck('destination'),
+            'destinations' => TourPackage::query()
+                ->whereNotNull('location_name')
+                ->orderBy('location_name')
+                ->pluck('location_name')
+                ->map(fn ($value) => trim((string) $value))
+                ->filter()
+                ->values(),
+            'destinationOptions' => collect(),
             'packageCategories' => PackageCategory::query()
                 ->where('status', 'Active')
                 ->orderBy('type')
@@ -85,10 +95,13 @@ class TourPackageController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $rules = [
             'title' => ['required', 'string', 'max:150'],
             'slug' => ['required', 'string', 'max:170', 'unique:tour_packages,slug'],
-            'destination' => ['required', 'string', 'max:120'],
+            'destination' => ['nullable', 'string', 'max:190'],
+            'location_name' => ['required', 'string', 'max:190'],
+            'latitude' => ['nullable', 'numeric'],
+            'longitude' => ['nullable', 'numeric'],
             'short_description' => ['nullable', 'string', 'max:1000'],
             'full_description' => ['nullable', 'string'],
             'country' => ['nullable', 'string', 'max:120'],
@@ -102,12 +115,14 @@ class TourPackageController extends Controller
             'duration' => ['required', 'string', 'max:80'],
             'price' => ['required', 'numeric', 'min:0'],
             'offer_price' => ['nullable', 'numeric', 'min:0'],
+            'offer_price_calendar_json' => ['nullable', 'string', 'max:100000'],
             'package_type' => ['required', Rule::in(['domestic', 'international', 'honeymoon', 'family', 'adventure'])],
             'status' => ['required', Rule::in(['draft', 'published'])],
             'is_popular' => ['boolean'],
             'itinerary_text' => ['nullable', 'string'],
             'inclusions_text' => ['nullable', 'string'],
             'exclusions_text' => ['nullable', 'string'],
+            'included_features_json' => ['nullable', 'string', 'max:100000'],
             'seo_meta_title' => ['nullable', 'string', 'max:190'],
             'seo_meta_description' => ['nullable', 'string', 'max:300'],
             'featured_image' => ['nullable', 'image', 'max:5120'],
@@ -137,18 +152,36 @@ class TourPackageController extends Controller
             'faqs' => ['nullable', 'array'],
             'faqs.*.q' => ['nullable', 'string', 'max:255'],
             'faqs.*.a' => ['nullable', 'string'],
-        ]);
+            'itinerary_json' => ['nullable', 'string', 'max:100000'],
+            'faqs_json' => ['nullable', 'string', 'max:100000'],
+        ];
+        $validated = $request->validate($rules);
 
-        $validated['itinerary'] = $this->toLinesArray($validated['itinerary_text'] ?? null);
+        $faqPayload = $this->parsedFaqsPayload($validated);
+        $validated['destination'] = $validated['location_name'];
+        $validated['city'] = $validated['location_name'];
+        $validated['offer_price_calendar'] = $this->parseOfferPriceCalendar($validated);
+        $validated['offer_price'] = collect($validated['offer_price_calendar'])->min('offer_price') ?: null;
+        $validated['itinerary'] = $this->parsedItineraryPayload($validated);
         $validated['inclusions'] = $this->toLinesArray($validated['inclusions_text'] ?? null);
         $validated['exclusions'] = $this->toLinesArray($validated['exclusions_text'] ?? null);
+        $validated['included_features'] = $this->parseIncludedFeatures($validated);
         if ($request->hasFile('featured_image')) {
             $validated['featured_image'] = $this->imageVariantManager->storeWithVariants($request->file('featured_image'), 'tour-packages', 'public');
         }
-        unset($validated['itinerary_text'], $validated['inclusions_text'], $validated['exclusions_text']);
+        unset(
+            $validated['itinerary_text'],
+            $validated['inclusions_text'],
+            $validated['exclusions_text'],
+            $validated['itinerary_json'],
+            $validated['offer_price_calendar_json'],
+            $validated['included_features_json'],
+            $validated['faqs_json'],
+            $validated['faqs'],
+        );
 
         $package = TourPackage::create($validated);
-        $this->syncFaqs($package, $validated['faqs'] ?? []);
+        $this->syncFaqs($package, $faqPayload);
         $this->logPackageActivity($request, 'package.created', $package, [
             'title' => $package->title,
             'status' => $package->status,
@@ -162,17 +195,21 @@ class TourPackageController extends Controller
         $request->merge([
             'title' => trim((string) ($request->input('title') ?? '')) ?: $package->title,
             'slug' => trim((string) ($request->input('slug') ?? '')) ?: $package->slug,
-            'destination' => trim((string) ($request->input('destination') ?? '')) ?: $package->destination,
+            'destination' => trim((string) ($request->input('destination') ?? '')) ?: ($package->location_name ?? $package->destination),
+            'location_name' => trim((string) ($request->input('location_name') ?? '')) ?: ($package->location_name ?? $package->destination),
             'duration' => trim((string) ($request->input('duration') ?? '')) ?: $package->duration,
             'price' => $request->input('price', $package->price),
             'package_type' => $request->input('package_type', $package->package_type),
             'status' => $request->input('status', $package->status),
         ]);
 
-        $validated = $request->validate([
+        $rules = [
             'title' => ['required', 'string', 'max:150'],
             'slug' => ['required', 'string', 'max:170', Rule::unique('tour_packages', 'slug')->ignore($package->id)],
-            'destination' => ['required', 'string', 'max:120'],
+            'destination' => ['nullable', 'string', 'max:190'],
+            'location_name' => ['required', 'string', 'max:190'],
+            'latitude' => ['nullable', 'numeric'],
+            'longitude' => ['nullable', 'numeric'],
             'short_description' => ['nullable', 'string', 'max:1000'],
             'full_description' => ['nullable', 'string'],
             'country' => ['nullable', 'string', 'max:120'],
@@ -186,12 +223,14 @@ class TourPackageController extends Controller
             'duration' => ['required', 'string', 'max:80'],
             'price' => ['required', 'numeric', 'min:0'],
             'offer_price' => ['nullable', 'numeric', 'min:0'],
+            'offer_price_calendar_json' => ['nullable', 'string', 'max:100000'],
             'package_type' => ['required', Rule::in(['domestic', 'international', 'honeymoon', 'family', 'adventure'])],
             'status' => ['required', Rule::in(['draft', 'published'])],
             'is_popular' => ['boolean'],
             'itinerary_text' => ['nullable', 'string'],
             'inclusions_text' => ['nullable', 'string'],
             'exclusions_text' => ['nullable', 'string'],
+            'included_features_json' => ['nullable', 'string', 'max:100000'],
             'seo_meta_title' => ['nullable', 'string', 'max:190'],
             'seo_meta_description' => ['nullable', 'string', 'max:300'],
             'featured_image' => ['nullable', 'image', 'max:5120'],
@@ -221,21 +260,39 @@ class TourPackageController extends Controller
             'faqs' => ['nullable', 'array'],
             'faqs.*.q' => ['nullable', 'string', 'max:255'],
             'faqs.*.a' => ['nullable', 'string'],
-        ]);
+            'itinerary_json' => ['nullable', 'string', 'max:100000'],
+            'faqs_json' => ['nullable', 'string', 'max:100000'],
+        ];
+        $validated = $request->validate($rules);
 
-        $validated['itinerary'] = $this->toLinesArray($validated['itinerary_text'] ?? null);
+        $faqPayload = $this->parsedFaqsPayload($validated);
+        $validated['destination'] = $validated['location_name'];
+        $validated['city'] = $validated['location_name'];
+        $validated['offer_price_calendar'] = $this->parseOfferPriceCalendar($validated);
+        $validated['offer_price'] = collect($validated['offer_price_calendar'])->min('offer_price') ?: null;
+        $validated['itinerary'] = $this->parsedItineraryPayload($validated);
         $validated['inclusions'] = $this->toLinesArray($validated['inclusions_text'] ?? null);
         $validated['exclusions'] = $this->toLinesArray($validated['exclusions_text'] ?? null);
+        $validated['included_features'] = $this->parseIncludedFeatures($validated);
         if ($request->hasFile('featured_image')) {
             $this->imageVariantManager->deleteWithVariants($package->featured_image, 'public');
             $validated['featured_image'] = $this->imageVariantManager->storeWithVariants($request->file('featured_image'), 'tour-packages', 'public');
         } else {
             unset($validated['featured_image']);
         }
-        unset($validated['itinerary_text'], $validated['inclusions_text'], $validated['exclusions_text']);
+        unset(
+            $validated['itinerary_text'],
+            $validated['inclusions_text'],
+            $validated['exclusions_text'],
+            $validated['itinerary_json'],
+            $validated['offer_price_calendar_json'],
+            $validated['included_features_json'],
+            $validated['faqs_json'],
+            $validated['faqs'],
+        );
 
         $package->update($validated);
-        $this->syncFaqs($package, $validated['faqs'] ?? []);
+        $this->syncFaqs($package, $faqPayload);
         $this->logPackageActivity($request, 'package.updated', $package, [
             'title' => $package->title,
             'status' => $package->status,
@@ -266,6 +323,39 @@ class TourPackageController extends Controller
         ]);
 
         return back();
+    }
+
+    public function uploadItineraryDayImage(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'image' => ['required', 'image', 'max:5120'],
+        ]);
+
+        $path = $this->imageVariantManager->storeWithVariants($validated['image'], 'tour-packages/itinerary', 'public');
+        $normalized = str_replace('\\', '/', ltrim($path, '/'));
+        // Root-relative URL so images work on 127.0.0.1:8000, localhost, or any APP_URL
+        $url = '/storage/'.$normalized;
+
+        return response()->json([
+            'path' => $path,
+            'url' => $url,
+        ]);
+    }
+
+    public function uploadEditorImage(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'image' => ['required', 'image', 'max:5120'],
+        ]);
+
+        $path = $this->imageVariantManager->storeWithVariants($validated['image'], 'tour-packages/editor', 'public');
+        $normalized = str_replace('\\', '/', ltrim($path, '/'));
+        $url = '/storage/'.$normalized;
+
+        return response()->json([
+            'path' => $path,
+            'url' => $url,
+        ]);
     }
 
     public function bulkDiscount(Request $request): RedirectResponse
@@ -353,6 +443,143 @@ class TourPackageController extends Controller
     {
         return collect(explode("\n", (string) $value))
             ->map(fn ($item) => trim($item))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return list<array{title: string, description: string, meals: string, hotel: string, transport: string, travel_mode: string}>
+     */
+    private function parsedItineraryPayload(array $validated): array
+    {
+        $raw = $validated['itinerary_json'] ?? null;
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return $this->normalizeItineraryDays($decoded);
+            }
+        }
+
+        return $this->toLinesArray($validated['itinerary_text'] ?? null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return list<array{q?: string, a?: string}>
+     */
+    private function parsedFaqsPayload(array $validated): array
+    {
+        $raw = $validated['faqs_json'] ?? null;
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return $validated['faqs'] ?? [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return list<array{start_date: string, end_date: string, offer_price: float}>
+     */
+    private function parseOfferPriceCalendar(array $validated): array
+    {
+        $raw = $validated['offer_price_calendar_json'] ?? null;
+        if (! is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return collect($decoded)
+            ->filter(fn ($item) => is_array($item))
+            ->map(function (array $item): ?array {
+                $start = trim((string) ($item['start_date'] ?? ''));
+                $end = trim((string) ($item['end_date'] ?? ''));
+                $price = $item['offer_price'] ?? null;
+                if ($start === '' || $end === '' || $price === null || $price === '') {
+                    return null;
+                }
+
+                return [
+                    'start_date' => $start,
+                    'end_date' => $end,
+                    'offer_price' => (float) $price,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return list<array{key: string, label: string, icon: string}>
+     */
+    private function parseIncludedFeatures(array $validated): array
+    {
+        $raw = $validated['included_features_json'] ?? null;
+        if (! is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return collect($decoded)
+            ->filter(fn ($item) => is_array($item))
+            ->map(function (array $item): ?array {
+                $key = trim((string) ($item['key'] ?? ''));
+                $label = trim((string) ($item['label'] ?? ''));
+                $icon = trim((string) ($item['icon'] ?? ''));
+                if ($label === '') {
+                    return null;
+                }
+
+                return [
+                    'key' => $key !== '' ? $key : Str::slug($label),
+                    'label' => $label,
+                    'icon' => $icon,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<mixed>  $days
+     * @return list<array{title: string, description: string, meals: string, hotel: string, transport: string, travel_mode: string, image: string}>
+     */
+    private function normalizeItineraryDays(array $days): array
+    {
+        return collect($days)
+            ->map(function ($item): ?array {
+                if (! is_array($item)) {
+                    return null;
+                }
+                $mode = (($item['travel_mode'] ?? 'day') === 'night') ? 'night' : 'day';
+                $imageRaw = trim((string) ($item['image'] ?? ''));
+                $image = $imageRaw !== '' ? Str::limit($imageRaw, 2000, '') : '';
+
+                return [
+                    'title' => (string) ($item['title'] ?? ''),
+                    'description' => (string) ($item['description'] ?? ''),
+                    'meals' => (string) ($item['meals'] ?? ''),
+                    'hotel' => (string) ($item['hotel'] ?? ''),
+                    'transport' => (string) ($item['transport'] ?? ''),
+                    'travel_mode' => $mode,
+                    'image' => $image,
+                ];
+            })
             ->filter()
             ->values()
             ->all();

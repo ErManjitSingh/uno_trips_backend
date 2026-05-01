@@ -3,8 +3,11 @@ import WebLayout from '../../../Layouts/WebLayout'
 
 const toImageUrl = (path) => {
   if (!path) return ''
-  if (/^https?:\/\//.test(path) || path.startsWith('data:')) return path
-  return `/storage/${path}`
+  const normalized = String(path).replace(/\\/g, '/').trim()
+  if (!normalized) return ''
+  if (/^https?:\/\//.test(normalized) || normalized.startsWith('data:')) return normalized
+  if (normalized.startsWith('/')) return normalized
+  return `/storage/${normalized.replace(/^\/+/, '')}`
 }
 
 const responsiveImageProps = (path) => {
