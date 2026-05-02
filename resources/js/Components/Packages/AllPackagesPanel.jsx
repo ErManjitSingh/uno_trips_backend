@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react'
-import { Copy, Eye, ImageOff, PencilLine, Trash2 } from 'lucide-react'
+import { Copy, Eye, PencilLine, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import ActionConfirmModal from './ActionConfirmModal'
 
@@ -158,31 +158,19 @@ export default function AllPackagesPanel({ packages, filters, destinations, upda
   }
 
   return (
-    <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm sm:p-8">
-      <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-xl">
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{showPricingManager ? 'Pricing Manager' : 'All Packages'}</h2>
-          <p className="mt-1.5 text-base leading-relaxed text-slate-600">
-            {showPricingManager ? 'Manage bulk discounts for packages.' : 'Browse, filter, and manage packages. Each card shows key details at a glance.'}
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-900">{showPricingManager ? 'Pricing Manager' : 'All Packages'}</h2>
+          <p className="text-sm text-slate-500">
+            {showPricingManager ? 'Manage bulk discounts for packages.' : 'Browse, filter, and manage packages.'}
           </p>
         </div>
-        <div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:min-w-[640px]">
-          <label className="block space-y-1.5">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Search</span>
-            <input defaultValue={filters.search} placeholder="Title or slug…" className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100" onChange={(e) => updateFilters({ search: e.target.value })} />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Status</span>
-            <select value={filters.status || ''} onChange={(e) => updateFilters({ status: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"><option value="">All Status</option><option value="draft">Draft</option><option value="published">Published</option></select>
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Type</span>
-            <select value={filters.package_type || ''} onChange={(e) => updateFilters({ package_type: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"><option value="">All Types</option><option value="domestic">Domestic</option><option value="international">International</option><option value="honeymoon">Honeymoon</option><option value="family">Family</option><option value="adventure">Adventure</option></select>
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Destination</span>
-            <select value={filters.destination || ''} onChange={(e) => updateFilters({ destination: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"><option value="">All Destinations</option>{destinations.map((d) => <option key={d} value={d}>{d}</option>)}</select>
-          </label>
+        <div className="grid gap-2 sm:grid-cols-4">
+          <input defaultValue={filters.search} placeholder="Search packages..." className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400" onChange={(e) => updateFilters({ search: e.target.value })} />
+          <select value={filters.status || ''} onChange={(e) => updateFilters({ status: e.target.value })} className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"><option value="">All Status</option><option value="draft">Draft</option><option value="published">Published</option></select>
+          <select value={filters.package_type || ''} onChange={(e) => updateFilters({ package_type: e.target.value })} className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"><option value="">All Types</option><option value="domestic">Domestic</option><option value="international">International</option><option value="honeymoon">Honeymoon</option><option value="family">Family</option><option value="adventure">Adventure</option></select>
+          <select value={filters.destination || ''} onChange={(e) => updateFilters({ destination: e.target.value })} className="rounded-xl border border-slate-200 bg-transparent px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"><option value="">All Destinations</option>{destinations.map((d) => <option key={d} value={d}>{d}</option>)}</select>
         </div>
       </div>
 
@@ -230,126 +218,109 @@ export default function AllPackagesPanel({ packages, filters, destinations, upda
       ) : null}
 
       {!showPricingManager ? (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 px-4 py-3.5">
-          <div className="flex items-center gap-3">
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
-              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" aria-label="Select all packages" />
-              <span>Select all on this page</span>
-            </label>
-            <span className="hidden h-4 w-px bg-slate-200 sm:inline-block" aria-hidden />
-            <p className="text-sm text-slate-600">
-              <span className="font-semibold text-slate-900">{selectedPackageIds.length}</span> selected
-            </p>
-          </div>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-xs text-slate-500">{selectedPackageIds.length} selected</p>
           <button
             type="button"
             onClick={handleBulkDelete}
             disabled={!selectedPackageIds.length}
-            className="rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Bulk delete
+            Bulk Delete
           </button>
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        {packageList.map((pkg) => (
-          <article
-            key={pkg.id}
-            className="group flex flex-col gap-4 rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white to-slate-50/40 p-4 shadow-sm transition hover:border-indigo-200/80 hover:shadow-md sm:flex-row sm:items-stretch sm:gap-5 sm:p-5"
-          >
-            <div className="flex shrink-0 items-start gap-3 sm:flex-col sm:items-center sm:pt-1">
-              <input
-                type="checkbox"
-                checked={selectedPackageIds.includes(pkg.id)}
-                onChange={() => toggleSelectOne(pkg.id)}
-                className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 sm:mt-0"
-                aria-label={`Select ${pkg.title}`}
-              />
-              <div className="relative h-36 w-full overflow-hidden rounded-xl bg-slate-100 shadow-inner ring-1 ring-slate-200/80 sm:h-32 sm:w-40">
-                {resolveImageUrl(pkg.featured_image) ? (
-                  <img src={resolveImageUrl(pkg.featured_image)} alt={pkg.title} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-2 text-center text-xs font-medium text-slate-500">
-                    <ImageOff className="h-8 w-8 opacity-35" strokeWidth={1.25} aria-hidden />
-                    No image
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="min-w-0 flex-1 space-y-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold leading-snug text-slate-900 sm:text-xl">{pkg.title}</h3>
-                  <p className="mt-1 font-mono text-sm text-slate-500">/{pkg.slug}</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold capitalize text-indigo-800 ring-1 ring-indigo-100">
-                    {pkg.package_type || 'general'}
-                  </span>
-                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ring-1 ${pkg.status === 'published' ? 'bg-emerald-50 text-emerald-800 ring-emerald-100' : 'bg-amber-50 text-amber-800 ring-amber-100'}`}>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px] text-sm">
+          <thead><tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400"><th className="pb-2"><input type="checkbox" checked={allSelected} onChange={toggleSelectAll} aria-label="Select all packages" /></th><th className="pb-2">Image</th><th className="pb-2">Title</th><th className="pb-2">Type</th><th className="pb-2">Destination</th><th className="pb-2">Price</th><th className="pb-2">Status</th><th className="pb-2">SEO Score</th><th className="pb-2 text-right">Actions</th></tr></thead>
+          <tbody>
+            {packageList.map((pkg, index) => (
+              <tr
+                key={pkg.id}
+                className={`border-b border-slate-100 ${
+                  index % 3 === 0 ? 'bg-white' : index % 3 === 1 ? 'bg-blue-50/70' : 'bg-amber-50/70'
+                }`}
+              >
+                <td className="py-2 align-middle">
+                  <input
+                    type="checkbox"
+                    checked={selectedPackageIds.includes(pkg.id)}
+                    onChange={() => toggleSelectOne(pkg.id)}
+                    aria-label={`Select ${pkg.title}`}
+                  />
+                </td>
+                <td className="py-2">
+                  {resolveImageUrl(pkg.featured_image) ? (
+                    <img src={resolveImageUrl(pkg.featured_image)} alt={pkg.title} className="h-12 w-16 rounded-lg object-cover" />
+                  ) : (
+                    <div className="grid h-12 w-16 place-items-center rounded-lg bg-slate-100 text-[10px] text-slate-500">No image</div>
+                  )}
+                </td>
+                <td className="py-3">
+                  <p className="font-medium text-slate-700">{pkg.title}</p>
+                  <p className="text-xs text-slate-500">/{pkg.slug}</p>
+                </td>
+                <td>
+                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">{pkg.package_type || 'general'}</span>
+                </td>
+                <td className="text-slate-600">{pkg.location_name || pkg.destination}</td>
+                <td className="text-slate-700">
+                  <p className="font-medium">INR {Number(pkg.offer_price || pkg.price || 0).toLocaleString()}</p>
+                  {pkg.offer_price ? (
+                    <div className="mt-0.5 flex items-center gap-2">
+                      <p className="text-xs text-slate-400 line-through">INR {Number(pkg.price || 0).toLocaleString()}</p>
+                      {getDiscountPercent(pkg) > 0 ? (
+                        <span className="rounded-full bg-emerald-100 px-1.5 py-[1px] text-[10px] font-semibold leading-none text-emerald-700">
+                          {getDiscountPercent(pkg)}% OFF
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </td>
+                <td>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${pkg.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                     {pkg.status}
                   </span>
+                </td>
+                <td>
                   <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ring-1 ${
+                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                       getSeoScore(pkg) >= 80
-                        ? 'bg-emerald-50 text-emerald-800 ring-emerald-100'
+                        ? 'bg-emerald-100 text-emerald-700'
                         : getSeoScore(pkg) >= 50
-                          ? 'bg-amber-50 text-amber-800 ring-amber-100'
-                          : 'bg-rose-50 text-rose-800 ring-rose-100'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-rose-100 text-rose-700'
                     }`}
                   >
-                    SEO {getSeoScore(pkg)}%
+                    {getSeoScore(pkg)}%
                   </span>
-                </div>
-              </div>
-
-              <p className="text-sm leading-relaxed text-slate-600">
-                <span className="font-medium text-slate-700">Destination:</span>{' '}
-                {pkg.location_name || pkg.destination || '—'}
-              </p>
-
-              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-t border-slate-100 pt-3">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">From</p>
-                  <p className="text-xl font-bold tabular-nums text-slate-900">INR {Number(pkg.offer_price || pkg.price || 0).toLocaleString()}</p>
-                </div>
-                {pkg.offer_price ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm text-slate-400 line-through">INR {Number(pkg.price || 0).toLocaleString()}</p>
-                    {getDiscountPercent(pkg) > 0 ? (
-                      <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800 ring-1 ring-emerald-200/80">
-                        {getDiscountPercent(pkg)}% off
-                      </span>
-                    ) : null}
+                </td>
+                <td className="py-2">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button type="button" onClick={() => handleEdit(pkg)} className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-600" title="Edit Package">
+                      <PencilLine className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" onClick={() => window.open(`/tours/${pkg.slug}`, '_blank')} className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:text-violet-600" title="Preview Package">
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" onClick={() => handleDuplicate(pkg)} className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:text-emerald-600" title="Duplicate Package">
+                      <Copy className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" onClick={() => handleDelete(pkg)} className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:text-rose-600" title="Delete Package">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="flex shrink-0 flex-row items-center justify-end gap-2 border-t border-slate-100 pt-3 sm:flex-col sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
-              <button type="button" onClick={() => handleEdit(pkg)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-600 hover:shadow" title="Edit">
-                <PencilLine className="h-5 w-5" />
-              </button>
-              <button type="button" onClick={() => window.open(`/tours/${pkg.slug}`, '_blank')} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-violet-300 hover:text-violet-600 hover:shadow" title="Preview">
-                <Eye className="h-5 w-5" />
-              </button>
-              <button type="button" onClick={() => handleDuplicate(pkg)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-emerald-300 hover:text-emerald-600 hover:shadow" title="Duplicate">
-                <Copy className="h-5 w-5" />
-              </button>
-              <button type="button" onClick={() => handleDelete(pkg)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-rose-300 hover:text-rose-600 hover:shadow" title="Delete">
-                <Trash2 className="h-5 w-5" />
-              </button>
-            </div>
-          </article>
-        ))}
-        {!packageList.length ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-16 text-center">
-            <p className="text-base font-medium text-slate-700">No packages match these filters</p>
-            <p className="mt-2 text-sm text-slate-500">Try clearing search or changing status / type / destination.</p>
-          </div>
-        ) : null}
+                </td>
+              </tr>
+            ))}
+            {!packageList.length ? (
+              <tr>
+                <td colSpan={9} className="py-10 text-center text-sm text-slate-500">No packages found for selected filters.</td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
       </div>
 
       <ActionConfirmModal
