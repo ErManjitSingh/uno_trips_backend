@@ -242,12 +242,16 @@ export default function AdminLayout({ title, children }) {
         useAdminAutoLogout();
 
     const refreshCurrentPage = () => {
-        router.reload({
-            preserveScroll: true,
-            preserveState: true,
-            onStart: () => setRefreshing(true),
-            onFinish: () => setRefreshing(false),
-        });
+        router
+            .reload({
+                preserveScroll: true,
+                preserveState: true,
+                onStart: () => setRefreshing(true),
+                onFinish: () => setRefreshing(false),
+            })
+            .catch(() => {
+                setRefreshing(false);
+            });
     };
 
     useEffect(() => {

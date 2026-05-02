@@ -102,9 +102,22 @@ export default function Dashboard({
   }, [trafficRange])
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      router.reload({ only: ['stats', 'recentActivities', 'activeUsersNow', 'latestVisitors'], preserveScroll: true, preserveState: true })
-    }, 10000)
+    const intervalMs = 45000
+    const reloadStats = () => {
+      if (document.visibilityState !== 'visible') {
+        return
+      }
+      router
+        .reload({
+          only: ['stats', 'recentActivities', 'activeUsersNow', 'latestVisitors'],
+          preserveScroll: true,
+          preserveState: true,
+        })
+        .catch(() => {
+          /* shared hosting / tab background — ignore transient network errors */
+        })
+    }
+    const timer = setInterval(reloadStats, intervalMs)
     return () => clearInterval(timer)
   }, [])
 
@@ -116,6 +129,7 @@ export default function Dashboard({
       preserveState: true,
       replace: true,
       onFinish: () => setLoadingCharts(false),
+      onError: () => setLoadingCharts(false),
     })
   }
 
@@ -127,6 +141,7 @@ export default function Dashboard({
       preserveState: true,
       replace: true,
       onFinish: () => setLoadingCharts(false),
+      onError: () => setLoadingCharts(false),
     })
   }
 
@@ -138,6 +153,7 @@ export default function Dashboard({
       preserveState: true,
       replace: true,
       onFinish: () => setLoadingCharts(false),
+      onError: () => setLoadingCharts(false),
     })
   }
 
