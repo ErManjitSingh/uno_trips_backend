@@ -1,0 +1,14 @@
+# Jab domain/subdomain ka document root Laravel root (project folder) ho,
+# /build/* aur baaki requests public/ ke andar resolve hon — warna .js par HTML aa jata hai.
+<IfModule mod_rewrite.c>
+    Options +FollowSymLinks -Indexes
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Project root par .env direct serve na ho
+<IfModule mod_authz_core.c>
+    <Files ".env">
+        Require all denied
+    </Files>
+</IfModule>
