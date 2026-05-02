@@ -1,0 +1,82 @@
+# GitHub → server deploy (SSH key only; no passwords in repo).
+#
+# GitHub repo: Settings → Secrets and variables → Actions — add:
+#   SSH_HOST        e.g. 92.249.46.104
+#   SSH_PORT        e.g. 65002
+#   SSH_USER        e.g. u442232604
+#   SSH_PRIVATE_KEY full private key (PEM), the one whose public key is in server's ~/.ssh/authorized_keys
+#   DEPLOY_PATH     absolute path to Laravel project root on server (where artisan lives)
+#
+# Server pe pehle: git clone <repo> DEPLOY_PATH, .env banao, composer install ek dafa.
+# SSH key: local se ssh-keygen, public key server par authorized_keys mein.
+
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install npm dependencies and build assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Start ssh-agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Trust server host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload Vite build (public/build)
+        run: |
+          rsync -avz --delete \
+            -e "ssh -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes" \
+            public/build/ \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/public/build/"
+
+      - name: Pull code and optimize Laravel on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+            git fetch origin "${{ github.ref_name }}"
+            git checkout "${{ github.ref_name }}"
+            git reset --hard "origin/${{ github.ref_name }}"
+            composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+            php artisan migrate --force
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache || true
+            php artisan view:cache
