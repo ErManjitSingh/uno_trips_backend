@@ -62,7 +62,7 @@ function renderReplyParts(text) {
     return parts.map((part, i) => {
         if (part.startsWith("**") && part.endsWith("**")) {
             return (
-                <strong key={i} className="font-semibold text-cyan-100/95">
+                <strong key={i} className="font-semibold text-amber-200/95">
                     {part.slice(2, -2)}
                 </strong>
             );
@@ -76,9 +76,9 @@ function renderReplyParts(text) {
 }
 
 function statusDotClass(status) {
-    if (status === "warning") return "bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.7)]";
-    if (status === "pending") return "bg-violet-400 shadow-[0_0_12px_rgba(167,139,250,0.65)]";
-    return "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.65)]";
+    if (status === "warning") return "bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.65)]";
+    if (status === "pending") return "bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.6)]";
+    return "bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,0.55)]";
 }
 
 function TypingDots() {
@@ -87,7 +87,7 @@ function TypingDots() {
             {[0, 1, 2].map((i) => (
                 <span
                     key={i}
-                    className="h-1.5 w-1.5 rounded-full bg-cyan-400/80 animate-[pulse_1s_ease-in-out_infinite]"
+                    className="h-1.5 w-1.5 rounded-full bg-amber-500/90 animate-[pulse_1s_ease-in-out_infinite]"
                     style={{ animationDelay: `${i * 0.15}s` }}
                 />
             ))}
@@ -254,34 +254,34 @@ export default function AdminAssistantWidget() {
                             id={panelId}
                             role="dialog"
                             aria-label="Admin Smart Assistant"
-                            className="flex min-h-0 max-h-[min(85vh,640px)] w-[min(100vw-1.25rem,26rem)] origin-bottom-right flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#07070c]/92 text-slate-100 shadow-[0_24px_80px_rgba(0,0,0,0.55),0_0_1px_rgba(255,255,255,0.08)] backdrop-blur-2xl transition duration-300 ease-out motion-safe:animate-[admin-assistant-panel-in_0.35s_ease-out_both]"
+                            className="flex min-h-0 max-h-[min(85vh,640px)] w-[min(100vw-1.25rem,26rem)] origin-bottom-right flex-col overflow-hidden rounded-3xl border border-amber-600/25 bg-gradient-to-b from-stone-900/95 via-stone-950/98 to-[#0c0a09]/98 text-amber-50/95 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition duration-300 ease-out motion-safe:animate-[admin-assistant-panel-in_0.35s_ease-out_both]"
                             style={{
                                 boxShadow:
-                                    "0 0 0 1px rgba(34,211,238,0.12), 0 24px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
+                                    "0 0 0 1px rgba(245,158,11,0.14), 0 24px 64px rgba(0,0,0,0.45), inset 0 1px 0 rgba(251,191,36,0.08)",
                             }}
                         >
-                            <div className="pointer-events-none absolute -left-24 top-0 h-40 w-40 rounded-full bg-cyan-500/25 blur-3xl" />
-                            <div className="pointer-events-none absolute -right-16 bottom-0 h-48 w-48 rounded-full bg-violet-600/20 blur-3xl" />
+                            <div className="pointer-events-none absolute -left-24 top-0 h-40 w-40 rounded-full bg-orange-500/20 blur-3xl" />
+                            <div className="pointer-events-none absolute -right-16 bottom-0 h-48 w-48 rounded-full bg-amber-600/15 blur-3xl" />
 
-                            <header className="relative z-10 flex items-start justify-between gap-3 border-b border-white/10 px-4 pb-3 pt-4">
+                            <header className="relative z-10 flex items-start justify-between gap-3 border-b border-amber-900/40 px-4 pb-3 pt-4">
                                 <div className="flex min-w-0 items-center gap-3">
-                                    <div className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/20 to-violet-600/25 shadow-[0_0_24px_rgba(34,211,238,0.35)]">
-                                        <Bot className="h-6 w-6 text-cyan-200" />
-                                        <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[#0a0a0f] bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
+                                    <div className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-amber-500/35 bg-gradient-to-br from-amber-600/25 to-orange-900/40 shadow-[0_0_22px_rgba(245,158,11,0.25)]">
+                                        <Bot className="h-6 w-6 text-amber-200" />
+                                        <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-stone-950 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.75)]">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-stone-950" />
                                         </span>
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300/80">
+                                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-500/90">
                                             Monitor
                                         </p>
-                                        <h2 className="truncate text-base font-semibold tracking-tight text-white">
+                                        <h2 className="truncate text-base font-semibold tracking-tight text-amber-50">
                                             Admin Smart Assistant
                                         </h2>
-                                        <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
+                                        <div className="mt-1 flex items-center gap-2 text-[11px] text-stone-400">
                                             <span className="relative flex h-2 w-2">
-                                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />
-                                                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-45" />
+                                                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
                                             </span>
                                             Live system
                                         </div>
@@ -290,7 +290,7 @@ export default function AdminAssistantWidget() {
                                 <button
                                     type="button"
                                     onClick={() => setOpen(false)}
-                                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-stone-600/50 bg-stone-900/80 text-amber-100/80 transition hover:border-amber-600/50 hover:bg-stone-800 hover:text-amber-50"
                                     aria-label="Close assistant"
                                 >
                                     <X className="h-4 w-4" />
@@ -303,24 +303,24 @@ export default function AdminAssistantWidget() {
                                         {snapshot.cards.map((c) => (
                                             <div
                                                 key={c.key}
-                                                className="min-w-[8.5rem] flex-1 rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 shadow-inner backdrop-blur-sm transition hover:border-cyan-400/25"
+                                                className="min-w-[8.5rem] flex-1 rounded-2xl border border-stone-700/60 bg-stone-900/50 p-2.5 shadow-inner backdrop-blur-sm transition hover:border-amber-600/35"
                                             >
                                                 <div className="flex items-center justify-between gap-1">
-                                                    <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                                                    <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">
                                                         {c.title}
                                                     </span>
                                                     <span
                                                         className={`h-2 w-2 shrink-0 rounded-full ${statusDotClass(c.status)}`}
                                                     />
                                                 </div>
-                                                <p className="mt-1 text-lg font-semibold tabular-nums text-white">
+                                                <p className="mt-1 text-lg font-semibold tabular-nums text-amber-50">
                                                     {c.completed != null && c.pending != null
                                                         ? `${c.completed}/${c.completed + c.pending}`
                                                         : c.pending != null
                                                           ? c.pending
                                                           : "—"}
                                                 </p>
-                                                <p className="line-clamp-2 text-[10px] leading-snug text-slate-500">
+                                                <p className="line-clamp-2 text-[10px] leading-snug text-stone-500">
                                                     {c.hint}
                                                 </p>
                                             </div>
@@ -330,28 +330,28 @@ export default function AdminAssistantWidget() {
                             ) : null}
 
                             {snapshot && (
-                                <div className="relative z-10 mx-3 mt-2 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-2.5">
-                                    <div className="rounded-xl bg-black/30 px-2.5 py-2">
-                                        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                                <div className="relative z-10 mx-3 mt-2 grid grid-cols-2 gap-2 rounded-2xl border border-amber-900/35 bg-gradient-to-br from-stone-900/90 to-stone-950/95 p-2.5">
+                                    <div className="rounded-xl bg-stone-950/80 px-2.5 py-2 ring-1 ring-amber-900/30">
+                                        <p className="text-[10px] font-medium uppercase tracking-wide text-stone-500">
                                             Readiness
                                         </p>
-                                        <p className="text-2xl font-bold tabular-nums tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-violet-300">
+                                        <p className="text-2xl font-bold tabular-nums tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-orange-600">
                                             {statusLoading ? "…" : `${snapshot.readiness_percent}%`}
                                         </p>
-                                        <p className="text-[11px] text-slate-400">
+                                        <p className="text-[11px] text-stone-400">
                                             {snapshot.readiness_label}
                                         </p>
                                     </div>
-                                    <div className="flex flex-col justify-center gap-1.5 rounded-xl bg-black/30 px-2.5 py-2">
-                                        <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
-                                            <Shield className="h-3.5 w-3.5 text-cyan-400/90" />
+                                    <div className="flex flex-col justify-center gap-1.5 rounded-xl bg-stone-950/80 px-2.5 py-2 ring-1 ring-amber-900/30">
+                                        <div className="flex items-center gap-1.5 text-[11px] text-stone-300">
+                                            <Shield className="h-3.5 w-3.5 text-amber-500/95" />
                                             {snapshot.alerts?.length
                                                 ? `${snapshot.alerts.length} alert(s)`
                                                 : "No alerts"}
                                         </div>
                                         <Link
                                             href="/admin/dashboard"
-                                            className="inline-flex items-center gap-1 text-[11px] font-medium text-cyan-300/90 hover:text-cyan-200"
+                                            className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-400/95 hover:text-amber-300"
                                         >
                                             Open dashboard
                                             <ChevronDown className="h-3 w-3 -rotate-90" />
@@ -371,7 +371,7 @@ export default function AdminAssistantWidget() {
                                         type="button"
                                         disabled={chatLoading || auditLoading}
                                         onClick={() => quickAsk(q)}
-                                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-slate-300 transition hover:border-cyan-400/30 hover:text-white disabled:opacity-40"
+                                        className="rounded-full border border-stone-600/50 bg-stone-900/60 px-2.5 py-1 text-[10px] font-medium text-stone-300 transition hover:border-amber-600/45 hover:text-amber-50 disabled:opacity-40"
                                     >
                                         {q}
                                     </button>
@@ -380,7 +380,7 @@ export default function AdminAssistantWidget() {
                                     type="button"
                                     disabled={auditLoading || chatLoading}
                                     onClick={() => quickAsk("Run system audit")}
-                                    className="inline-flex items-center gap-1 rounded-full border border-cyan-500/35 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold text-cyan-200 transition hover:bg-cyan-500/20 disabled:opacity-40"
+                                    className="inline-flex items-center gap-1 rounded-full border border-orange-500/40 bg-orange-950/40 px-2.5 py-1 text-[10px] font-semibold text-amber-200 transition hover:bg-orange-900/50 disabled:opacity-40"
                                 >
                                     {auditLoading ? (
                                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -392,13 +392,13 @@ export default function AdminAssistantWidget() {
                             </div>
 
                             {error ? (
-                                <p className="relative z-10 px-3 text-[11px] text-rose-300">{error}</p>
+                                <p className="relative z-10 px-3 text-[11px] text-orange-300">{error}</p>
                             ) : null}
 
-                            <div className="relative z-10 min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-2 [scrollbar-color:rgba(148,163,184,0.35)_transparent] [scrollbar-width:thin]">
+                            <div className="relative z-10 min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-2 [scrollbar-color:rgba(245,158,11,0.35)_transparent] [scrollbar-width:thin]">
                                 {messages.length === 0 && !chatLoading ? (
-                                    <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-3 py-6 text-center text-xs text-slate-500">
-                                        <Sparkles className="mx-auto mb-2 h-5 w-5 text-violet-400/80" />
+                                    <div className="rounded-2xl border border-dashed border-amber-800/40 bg-stone-900/40 px-3 py-6 text-center text-xs text-stone-500">
+                                        <Sparkles className="mx-auto mb-2 h-5 w-5 text-amber-500/90" />
                                         Ask about pending work, launch readiness, or run a full
                                         audit. I monitor packages, blogs, SEO, destinations, leads,
                                         and settings — I do not generate marketing copy.
@@ -412,8 +412,8 @@ export default function AdminAssistantWidget() {
                                         <div
                                             className={`max-w-[92%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
                                                 msg.role === "user"
-                                                    ? "rounded-br-md border border-violet-500/25 bg-gradient-to-br from-violet-600/35 to-indigo-900/40 text-violet-50"
-                                                    : "rounded-bl-md border border-white/10 bg-white/[0.06] text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                                                    ? "rounded-br-md border border-orange-600/35 bg-gradient-to-br from-orange-700/50 via-amber-800/45 to-stone-950/90 text-amber-50"
+                                                    : "rounded-bl-md border border-stone-600/50 bg-stone-900/75 text-stone-200 shadow-[inset_0_1px_0_rgba(251,191,36,0.06)]"
                                             }`}
                                         >
                                             <div className="text-[13px]">{renderReplyParts(msg.text)}</div>
@@ -424,16 +424,16 @@ export default function AdminAssistantWidget() {
                                                             key={`${msg.id}-c-${idx}`}
                                                             className={`min-w-[4.5rem] rounded-xl border px-2.5 py-1.5 text-center ${
                                                                 card.tone === "amber"
-                                                                    ? "border-amber-400/30 bg-amber-500/10"
+                                                                    ? "border-orange-500/35 bg-orange-950/50"
                                                                     : card.tone === "violet"
-                                                                      ? "border-violet-400/30 bg-violet-500/10"
-                                                                      : "border-emerald-400/30 bg-emerald-500/10"
+                                                                      ? "border-amber-600/35 bg-amber-950/40"
+                                                                      : "border-amber-400/30 bg-stone-900/80"
                                                             }`}
                                                         >
-                                                            <p className="text-[9px] font-medium uppercase tracking-wide text-slate-400">
+                                                            <p className="text-[9px] font-medium uppercase tracking-wide text-stone-500">
                                                                 {card.title}
                                                             </p>
-                                                            <p className="text-sm font-semibold text-white">
+                                                            <p className="text-sm font-semibold text-amber-50">
                                                                 {card.value}
                                                             </p>
                                                         </div>
@@ -441,12 +441,12 @@ export default function AdminAssistantWidget() {
                                                 </div>
                                             ) : null}
                                             {msg.suggestions?.length && msg.role === "assistant" ? (
-                                                <div className="mt-2 flex flex-wrap gap-1 border-t border-white/10 pt-2">
+                                                <div className="mt-2 flex flex-wrap gap-1 border-t border-stone-700/50 pt-2">
                                                     {msg.suggestions.slice(0, 4).map((s) => (
                                                         <button
                                                             key={s}
                                                             type="button"
-                                                            className="rounded-lg bg-white/5 px-2 py-0.5 text-[10px] text-cyan-200/90 hover:bg-white/10"
+                                                            className="rounded-lg bg-stone-900/80 px-2 py-0.5 text-[10px] text-amber-300/95 hover:bg-stone-800"
                                                             onClick={() => quickAsk(s)}
                                                         >
                                                             {s}
@@ -459,7 +459,7 @@ export default function AdminAssistantWidget() {
                                 ))}
                                 {chatLoading ? (
                                     <div className="flex justify-start">
-                                        <div className="rounded-2xl rounded-bl-md border border-white/10 bg-white/[0.06] px-4 py-3">
+                                        <div className="rounded-2xl rounded-bl-md border border-stone-600/50 bg-stone-900/75 px-4 py-3">
                                             <TypingDots />
                                         </div>
                                     </div>
@@ -468,13 +468,13 @@ export default function AdminAssistantWidget() {
                             </div>
 
                             <form
-                                className="relative z-10 border-t border-white/10 p-3"
+                                className="relative z-10 border-t border-amber-900/35 p-3"
                                 onSubmit={(e) => {
                                     e.preventDefault();
                                     void sendChat();
                                 }}
                             >
-                                <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-black/40 p-1.5 pl-3 shadow-inner backdrop-blur-sm">
+                                <div className="flex items-end gap-2 rounded-2xl border border-stone-700/60 bg-stone-950/90 p-1.5 pl-3 shadow-inner backdrop-blur-sm ring-1 ring-amber-950/40">
                                     <textarea
                                         rows={1}
                                         value={input}
@@ -486,12 +486,12 @@ export default function AdminAssistantWidget() {
                                             }
                                         }}
                                         placeholder="Ask: pending work, readiness, how-to…"
-                                        className="max-h-24 min-h-[2.5rem] flex-1 resize-none bg-transparent py-2 text-[13px] text-slate-100 outline-none placeholder:text-slate-600"
+                                        className="max-h-24 min-h-[2.5rem] flex-1 resize-none bg-transparent py-2 text-[13px] text-amber-50/95 outline-none placeholder:text-stone-600"
                                     />
                                     <button
                                         type="submit"
                                         disabled={chatLoading || !input.trim()}
-                                        className="mb-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-cyan-500 to-violet-600 text-white shadow-[0_0_20px_rgba(34,211,238,0.35)] transition hover:brightness-110 disabled:opacity-35"
+                                        className="mb-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-stone-950 shadow-[0_0_18px_rgba(234,88,12,0.35)] transition hover:brightness-110 disabled:opacity-35"
                                         aria-label="Send"
                                     >
                                         {chatLoading ? (
@@ -501,7 +501,7 @@ export default function AdminAssistantWidget() {
                                         )}
                                     </button>
                                 </div>
-                                <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-slate-600">
+                                <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-stone-600">
                                     <Activity className="h-3 w-3" />
                                     Intelligence from your database — not an external content AI.
                                 </p>
@@ -511,7 +511,7 @@ export default function AdminAssistantWidget() {
 
                     <div className="group relative">
                         <span
-                            className="pointer-events-none absolute -top-9 right-0 z-10 whitespace-nowrap rounded-lg border border-white/10 bg-[#0c0c12]/95 px-2.5 py-1 text-[10px] font-medium text-slate-200 opacity-0 shadow-lg backdrop-blur-md transition group-hover:opacity-100"
+                            className="pointer-events-none absolute -top-9 right-0 z-10 whitespace-nowrap rounded-lg border border-amber-700/40 bg-stone-950/95 px-2.5 py-1 text-[10px] font-medium text-amber-100 opacity-0 shadow-lg backdrop-blur-md transition group-hover:opacity-100"
                             role="tooltip"
                         >
                             Admin Intelligence
@@ -521,21 +521,21 @@ export default function AdminAssistantWidget() {
                             onClick={() => setOpen((v) => !v)}
                             aria-expanded={open}
                             aria-controls={open ? panelId : undefined}
-                            className="relative grid h-14 w-14 place-items-center rounded-full border border-cyan-400/40 bg-gradient-to-br from-[#101018] to-[#0a1620] text-cyan-200 shadow-[0_8px_32px_rgba(0,0,0,0.45)] transition hover:scale-[1.03] hover:border-cyan-300/60 hover:shadow-[0_0_32px_rgba(34,211,238,0.35)]"
+                            className="relative grid h-14 w-14 place-items-center rounded-full border border-amber-500/45 bg-gradient-to-br from-stone-900 via-stone-950 to-[#0c0a09] text-amber-300 shadow-[0_8px_28px_rgba(0,0,0,0.5),0_0_0_1px_rgba(245,158,11,0.15)] transition hover:scale-[1.03] hover:border-amber-400/70 hover:shadow-[0_0_28px_rgba(234,88,12,0.28)]"
                             style={{ animation: "admin-assistant-float 5.5s ease-in-out infinite" }}
                             aria-label="Open Admin Smart Assistant"
                         >
                             <span
-                                className="pointer-events-none absolute inset-[-4px] rounded-full border-2 border-transparent opacity-80"
+                                className="pointer-events-none absolute inset-[-4px] rounded-full border-2 border-transparent opacity-85"
                                 style={{
                                     background:
-                                        "linear-gradient(#0a0a0f,#0a0a0f) padding-box, conic-gradient(from 0deg, rgba(34,211,238,0.9), rgba(167,139,250,0.9), rgba(34,211,238,0.9)) border-box",
+                                        "linear-gradient(#0c0a09,#0c0a09) padding-box, conic-gradient(from 0deg, rgba(245,158,11,0.95), rgba(234,88,12,0.9), rgba(251,191,36,0.95), rgba(245,158,11,0.95)) border-box",
                                     animation: "admin-assistant-ring 8s linear infinite",
                                 }}
                             />
-                            <Sparkles className="relative z-[1] h-6 w-6" />
+                            <Sparkles className="relative z-[1] h-6 w-6 text-amber-400" />
                             {snapshot?.alerts?.length ? (
-                                <span className="absolute -right-0.5 -top-0.5 z-[2] flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-[#0a0a0f] bg-violet-500 px-1 text-[10px] font-bold text-white shadow-[0_0_12px_rgba(167,139,250,0.8)]">
+                                <span className="absolute -right-0.5 -top-0.5 z-[2] flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-stone-950 bg-gradient-to-br from-orange-500 to-amber-600 px-1 text-[10px] font-bold text-stone-950 shadow-[0_0_12px_rgba(249,115,22,0.65)]">
                                     {snapshot.alerts.length > 9 ? "9+" : snapshot.alerts.length}
                                 </span>
                             ) : null}
