@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
+use App\Support\ImageVariantManager;
 use App\Models\Destination;
 use App\Models\ListingPage;
 use App\Models\ListingPageCategory;
@@ -18,6 +19,8 @@ use Inertia\Response;
 
 class ListingPageController extends Controller
 {
+    public function __construct(private readonly ImageVariantManager $imageVariantManager) {}
+
     public function index(Request $request): Response
     {
         $filters = $request->validate([
@@ -87,7 +90,10 @@ class ListingPageController extends Controller
     {
         $validated = $this->validatePayload($request);
         if ($request->hasFile('banner_image_file')) {
-            $validated['banner_image'] = $request->file('banner_image_file')->store('listing-banners', 'public');
+            $validated['banner_image'] = $this->imageVariantManager->optimizeStoredPath(
+                $request->file('banner_image_file')->store('listing-banners', 'public'),
+                'public'
+            );
         }
         ListingPage::query()->create($validated);
 
@@ -101,7 +107,10 @@ class ListingPageController extends Controller
             if ($listingPage->banner_image && ! str_starts_with($listingPage->banner_image, 'http')) {
                 Storage::disk('public')->delete($listingPage->banner_image);
             }
-            $validated['banner_image'] = $request->file('banner_image_file')->store('listing-banners', 'public');
+            $validated['banner_image'] = $this->imageVariantManager->optimizeStoredPath(
+                $request->file('banner_image_file')->store('listing-banners', 'public'),
+                'public'
+            );
         }
         $listingPage->update($validated);
 

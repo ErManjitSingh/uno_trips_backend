@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MediaAsset;
+use App\Support\ImageVariantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +13,7 @@ use Inertia\Response;
 
 class MediaLibraryController extends Controller
 {
+    public function __construct(private readonly ImageVariantManager $imageVariantManager) {}
     public function index(Request $request): Response
     {
         $folder = (string) $request->query('folder', 'general');
@@ -35,14 +37,15 @@ class MediaLibraryController extends Controller
         ]);
 
         $file = $validated['asset'];
-        $path = $file->store('media/'.$validated['folder'], 'public');
+        $path = $this->imageVariantManager->storeWithVariants($file, 'media/'.$validated['folder'], 'public');
+        $absolute = Storage::disk('public')->path($path);
 
         MediaAsset::query()->create([
             'folder' => $validated['folder'],
             'file_name' => $file->getClientOriginalName(),
             'file_path' => $path,
-            'mime_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
+            'mime_type' => @mime_content_type($absolute) ?: 'image/webp',
+            'file_size' => (int) (Storage::disk('public')->size($path) ?: 0),
             'alt_text' => $validated['alt_text'] ?? null,
         ]);
 
@@ -52,7 +55,7 @@ class MediaLibraryController extends Controller
     public function destroy(MediaAsset $media): RedirectResponse
     {
         if ($media->file_path) {
-            Storage::disk('public')->delete($media->file_path);
+            $this->imageVariantManager->deleteWithVariants($media->file_path, 'public');
         }
         $media->delete();
 

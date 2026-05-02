@@ -8,6 +8,7 @@ use App\Models\SeoMeta;
 use App\Models\SeoTechnicalSetting;
 use App\Models\TourPackage;
 use App\Services\SeoMetaService;
+use App\Support\ImageVariantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -242,10 +243,16 @@ class SeoManagementApiController extends Controller
         $validated['image_file_name'] = $this->cleanText($validated['image_file_name'] ?? null, 255);
 
         if ($request->hasFile('og_image_file')) {
-            $validated['og_image'] = $request->file('og_image_file')->store('seo', 'public');
+            $validated['og_image'] = app(ImageVariantManager::class)->optimizeStoredPath(
+                $request->file('og_image_file')->store('seo', 'public'),
+                'public'
+            );
         }
         if ($request->hasFile('twitter_image_file')) {
-            $validated['twitter_image'] = $request->file('twitter_image_file')->store('seo', 'public');
+            $validated['twitter_image'] = app(ImageVariantManager::class)->optimizeStoredPath(
+                $request->file('twitter_image_file')->store('seo', 'public'),
+                'public'
+            );
         }
 
         unset($validated['og_image_file'], $validated['twitter_image_file']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\WebsiteSetting;
+use App\Support\ImageVariantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -15,6 +16,8 @@ use Inertia\Response;
 
 class WebsiteSettingController extends Controller
 {
+    public function __construct(private readonly ImageVariantManager $imageVariantManager) {}
+
     public function index(): Response
     {
         $settings = WebsiteSetting::query()->firstOrCreate(['id' => 1], ['site_name' => config('app.name')]);
@@ -92,15 +95,24 @@ class WebsiteSettingController extends Controller
         unset($data['logo_file'], $data['favicon_file'], $data['seo_og_image_file'], $data['ga4_json_key_file']);
 
         if ($request->hasFile('logo_file')) {
-            $data['logo'] = $request->file('logo_file')->store('settings', 'public');
+            $data['logo'] = $this->imageVariantManager->optimizeStoredPath(
+                $request->file('logo_file')->store('settings', 'public'),
+                'public'
+            );
         }
 
         if ($request->hasFile('favicon_file')) {
-            $data['favicon'] = $request->file('favicon_file')->store('settings', 'public');
+            $data['favicon'] = $this->imageVariantManager->optimizeStoredPath(
+                $request->file('favicon_file')->store('settings', 'public'),
+                'public'
+            );
         }
 
         if ($request->hasFile('seo_og_image_file')) {
-            $data['seo_og_image'] = $request->file('seo_og_image_file')->store('settings', 'public');
+            $data['seo_og_image'] = $this->imageVariantManager->optimizeStoredPath(
+                $request->file('seo_og_image_file')->store('settings', 'public'),
+                'public'
+            );
         }
 
         if ($request->hasFile('ga4_json_key_file')) {
