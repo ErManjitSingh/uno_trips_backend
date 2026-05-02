@@ -1,6 +1,7 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { useEffect, useMemo, useState } from "react";
 import useAdminAutoLogout from "../Hooks/useAdminAutoLogout";
+import AdminAssistantWidget from "../Components/AdminAssistant/AdminAssistantWidget";
 import {
     Activity,
     BadgePercent,
@@ -649,6 +650,7 @@ export default function AdminLayout({ title, children }) {
                     </div>
                 </div>
             ) : null}
+            <AdminAssistantWidget />
         </div>
     );
 }

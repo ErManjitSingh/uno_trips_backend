@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\FeaturedPackageController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ActivityController;
+use App\Http\Controllers\Admin\AdminAssistantApiController;
 use App\Http\Controllers\Admin\MediaLibraryController;
 use App\Http\Controllers\Admin\ReviewManagementController;
 use App\Http\Controllers\Admin\SeasonalOfferController;
@@ -62,6 +63,13 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::get('/search-locations', [LocationController::class, 'search'])->name('locations.search');
     Route::post('/search-locations/recent', [LocationController::class, 'rememberRecent'])->name('locations.recent');
+
+    Route::middleware(['role:super_admin,staff,sales,content_manager', 'admin.session.timeout'])->group(function (): void {
+        Route::get('/api/admin-status', [AdminAssistantApiController::class, 'adminStatus']);
+        Route::get('/api/system-audit', [AdminAssistantApiController::class, 'systemAudit']);
+        Route::get('/api/readiness-score', [AdminAssistantApiController::class, 'readinessScore']);
+        Route::post('/api/assistant-chat', [AdminAssistantApiController::class, 'assistantChat']);
+    });
 
     Route::prefix('admin')->name('admin.')->middleware(['role:super_admin,staff,sales,content_manager', 'admin.session.timeout'])->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

@@ -18,6 +18,8 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
+            /** Root-relative fetch() paths (e.g. XAMPP /public or app in subdirectory). */
+            'base_path' => fn () => rtrim($request->getBasePath(), '/'),
             'auth' => [
                 'user' => $request->user(),
             ],
