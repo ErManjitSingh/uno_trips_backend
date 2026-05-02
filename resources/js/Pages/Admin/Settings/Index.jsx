@@ -182,6 +182,7 @@ export default function SettingsIndex({ settings }) {
       forceFormData: true,
       preserveScroll: true,
       onSuccess: () => setToastOpen(true),
+      onError: () => {},
     })
   }
 
@@ -258,28 +259,31 @@ export default function SettingsIndex({ settings }) {
 
   const sendTestEmail = (e) => {
     e.preventDefault()
-    router.post('/admin/settings/test-email', {
-      test_email: testEmail,
-      smtp_settings: data.smtp_settings,
-    }, {
-      preserveScroll: true,
-    })
+    router
+      .post(
+        '/admin/settings/test-email',
+        {
+          test_email: testEmail,
+          smtp_settings: data.smtp_settings,
+        },
+        { preserveScroll: true },
+      )
+      .catch(() => {})
   }
 
   const sendGa4Test = (e) => {
     e.preventDefault()
-    router.post(
-      '/admin/settings/test-ga4',
-      {
-        ga4_property_id: data.ga4_property_id,
-        ga4_service_account_email: data.ga4_service_account_email,
-        ga4_json_key_file: data.ga4_json_key_file,
-      },
-      {
-        preserveScroll: true,
-        forceFormData: true,
-      }
-    )
+    router
+      .post(
+        '/admin/settings/test-ga4',
+        {
+          ga4_property_id: data.ga4_property_id,
+          ga4_service_account_email: data.ga4_service_account_email,
+          ga4_json_key_file: data.ga4_json_key_file,
+        },
+        { preserveScroll: true, forceFormData: true },
+      )
+      .catch(() => {})
   }
 
   return (
