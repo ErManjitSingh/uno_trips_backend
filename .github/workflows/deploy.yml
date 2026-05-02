@@ -75,6 +75,9 @@ jobs:
             git checkout "${{ github.ref_name }}"
             git reset --hard "origin/${{ github.ref_name }}"
             composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+            mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs storage/app/public
+            chmod -R ug+rwX storage bootstrap/cache || true
+            php artisan storage:link --force || true
             php artisan migrate --force
             php artisan optimize:clear
             php artisan config:cache

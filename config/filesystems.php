@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // false: warna Laravel /storage/* ko private disk par register karta hai (production mein signed URL maangta hai).
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
@@ -43,6 +44,8 @@ return [
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
+            // true: /storage/* uploads (storage/app/public) ko bina symlink / signature ke serve karta hai — shared hosting ke liye theek.
+            'serve' => true,
             'throw' => false,
             'report' => false,
         ],
