@@ -64,6 +64,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('site/about', [V1SiteController::class, 'about']);
     Route::get('site/contact', [V1SiteController::class, 'contact']);
     Route::get('packages', [V1PackageController::class, 'index']);
+    Route::get('packages/bundle', [V1PackageController::class, 'allPackagesBundle']);
     Route::get('packages/{slug}', [V1PackageController::class, 'show']);
     Route::get('package/{slug}', [V1PackageController::class, 'show']);
     Route::get('tours', [V1TourController::class, 'index']);
