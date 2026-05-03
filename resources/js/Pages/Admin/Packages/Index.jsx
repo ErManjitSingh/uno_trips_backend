@@ -394,6 +394,8 @@ export default function PackagesIndex({
       return
     }
 
+    setData('status', effectiveStatus)
+
     const payload = {
       ...data,
       title: effectiveTitle,
@@ -458,22 +460,31 @@ export default function PackagesIndex({
     }
     const onError = () => setSaveState(isEditing ? 'Update failed. Please fix required fields.' : 'Save failed. Please fix required fields.')
 
+    const visitOptions = { preserveScroll: true, onSuccess, onError }
+    const hasFeaturedImageFile = payload.featured_image instanceof File
+    const body = { ...payload }
+    if (!hasFeaturedImageFile) {
+      delete body.featured_image
+    }
+
     if (isEditing) {
-      router.post(`/admin/packages/${editingPackageId}`, { ...payload, _method: 'put' }, {
-        preserveScroll: true,
-        forceFormData: true,
-        onSuccess,
-        onError,
-      })
+      if (hasFeaturedImageFile) {
+        router.post(
+          `/admin/packages/${editingPackageId}`,
+          { ...body, _method: 'put' },
+          { ...visitOptions, forceFormData: true },
+        )
+      } else {
+        router.put(`/admin/packages/${editingPackageId}`, body, visitOptions)
+      }
       return
     }
 
-    router.post('/admin/packages', payload, {
-      preserveScroll: true,
-      forceFormData: true,
-      onSuccess,
-      onError,
-    })
+    if (hasFeaturedImageFile) {
+      router.post('/admin/packages', body, { ...visitOptions, forceFormData: true })
+    } else {
+      router.post('/admin/packages', body, visitOptions)
+    }
   }
 
   const autoGenerateSeo = () => {

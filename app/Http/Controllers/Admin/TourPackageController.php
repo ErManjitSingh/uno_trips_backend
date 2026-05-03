@@ -192,6 +192,11 @@ class TourPackageController extends Controller
 
     public function update(Request $request, TourPackage $package): RedirectResponse
     {
+        $incomingStatus = $request->input('status');
+        $normalizedStatus = is_string($incomingStatus) && in_array(trim($incomingStatus), ['draft', 'published'], true)
+            ? trim($incomingStatus)
+            : $package->status;
+
         $request->merge([
             'title' => trim((string) ($request->input('title') ?? '')) ?: $package->title,
             'slug' => trim((string) ($request->input('slug') ?? '')) ?: $package->slug,
@@ -200,7 +205,7 @@ class TourPackageController extends Controller
             'duration' => trim((string) ($request->input('duration') ?? '')) ?: $package->duration,
             'price' => $request->input('price', $package->price),
             'package_type' => $request->input('package_type', $package->package_type),
-            'status' => $request->input('status', $package->status),
+            'status' => $normalizedStatus,
         ]);
 
         $rules = [

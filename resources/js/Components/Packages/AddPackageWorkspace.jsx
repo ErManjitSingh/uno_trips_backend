@@ -276,7 +276,10 @@ export default function AddPackageWorkspace({
 
   return (
     <form
-      onSubmit={(e) => onSubmit(e, 'published')}
+      onSubmit={(e) => {
+        e.preventDefault()
+        onSubmit(e)
+      }}
       className="space-y-5 [&_label>span]:text-slate-900"
     >
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -654,7 +657,12 @@ export default function AddPackageWorkspace({
         >
           Save Draft
         </button>
-        <button type="submit" disabled={processing} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
+        <button
+          type="button"
+          onClick={(e) => onSubmit(e, 'published')}
+          disabled={processing}
+          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+        >
           {processing ? 'Saving...' : 'Publish'}
         </button>
         <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400" disabled title="Coming soon">

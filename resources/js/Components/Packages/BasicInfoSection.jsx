@@ -15,7 +15,9 @@ export default function BasicInfoSection({ data, setData, advanced, setAdvancedF
             <option value="draft">Draft (admin only)</option>
             <option value="published">Published (live on website)</option>
           </select>
-          <p className="text-xs text-slate-400">Published packages appear in tours, APIs, and search. Use header buttons to save as draft or publish in one click.</p>
+          <p className="text-xs text-slate-400">
+            Published = live on website and APIs. Save Draft / Publish buttons set status; dropdown tab use karo jab form mein Enter se save karna ho.
+          </p>
         </label>
         <label className="space-y-1"><span className="text-xs font-medium text-slate-500">Highlight Badge</span><select className={baseInput} value={advanced.badge} onChange={(e) => setAdvancedField('badge', e.target.value)}><option>Best Seller</option><option>Trending</option><option>Luxury</option><option>Budget</option></select></label>
         <label className="space-y-1 md:col-span-2"><span className="text-xs font-medium text-slate-500">Short Description (160 char)</span><textarea maxLength={160} className={`${baseInput} min-h-20`} value={advanced.short_description} onChange={(e) => setAdvancedField('short_description', e.target.value)} placeholder="Write a short package summary" /><p className="text-xs text-slate-400">{advanced.short_description.length}/160</p></label>
