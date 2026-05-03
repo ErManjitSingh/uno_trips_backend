@@ -9,6 +9,14 @@ export default function BasicInfoSection({ data, setData, advanced, setAdvancedF
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="space-y-1 md:col-span-2"><span className="text-xs font-medium text-slate-500">Package Name *</span><input className={baseInput} value={data.title} onChange={(e) => (onTitleChange ? onTitleChange(e.target.value) : setData('title', e.target.value))} placeholder="Enter package name" /></label>
         <label className="space-y-1"><span className="text-xs font-medium text-slate-500">Auto Slug (editable)</span><input className={baseInput} value={data.slug} onChange={(e) => (onSlugChange ? onSlugChange(e.target.value) : setData('slug', e.target.value))} placeholder="enter-package-slug" /></label>
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-slate-500">Visibility / Status</span>
+          <select className={baseInput} value={data.status || 'draft'} onChange={(e) => setData('status', e.target.value)}>
+            <option value="draft">Draft (admin only)</option>
+            <option value="published">Published (live on website)</option>
+          </select>
+          <p className="text-xs text-slate-400">Published packages appear in tours, APIs, and search. Use header buttons to save as draft or publish in one click.</p>
+        </label>
         <label className="space-y-1"><span className="text-xs font-medium text-slate-500">Highlight Badge</span><select className={baseInput} value={advanced.badge} onChange={(e) => setAdvancedField('badge', e.target.value)}><option>Best Seller</option><option>Trending</option><option>Luxury</option><option>Budget</option></select></label>
         <label className="space-y-1 md:col-span-2"><span className="text-xs font-medium text-slate-500">Short Description (160 char)</span><textarea maxLength={160} className={`${baseInput} min-h-20`} value={advanced.short_description} onChange={(e) => setAdvancedField('short_description', e.target.value)} placeholder="Write a short package summary" /><p className="text-xs text-slate-400">{advanced.short_description.length}/160</p></label>
         <div className="space-y-1 md:col-span-2">

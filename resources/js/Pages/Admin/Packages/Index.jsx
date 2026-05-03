@@ -362,7 +362,7 @@ export default function PackagesIndex({
     return () => clearInterval(ticker)
   }, [showSaveAnimation])
 
-  const submit = (e) => {
+  const submit = (e, forcedStatus) => {
     e?.preventDefault?.()
     clearErrors()
 
@@ -379,7 +379,10 @@ export default function PackagesIndex({
       ? data.price
       : (selectedPackageData?.price ?? '')
     const effectivePackageType = (data.package_type || '').trim() || (selectedPackageData?.package_type || '').trim() || 'domestic'
-    const effectiveStatus = (data.status || '').trim() || (selectedPackageData?.status || '').trim() || 'draft'
+    const effectiveStatus =
+      forcedStatus === 'published' || forcedStatus === 'draft'
+        ? forcedStatus
+        : (data.status || '').trim() || (selectedPackageData?.status || '').trim() || 'draft'
 
     if (!effectiveTitle) {
       setSaveState('Title missing. Please wait for package data to load.')

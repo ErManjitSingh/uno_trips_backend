@@ -8,9 +8,15 @@ export default function AddPackageHeader({ onSubmit }) {
           <p className="text-sm text-slate-500">Create and publish a premium travel package</p>
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
-          <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-600">Save Draft</button>
-          <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-600">Preview</button>
-          <button type="button" onClick={onSubmit} className="rounded-xl bg-emerald-600 px-3 py-2 font-semibold text-white">Publish Now</button>
+          <button type="button" onClick={(e) => onSubmit(e, 'draft')} className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-medium text-slate-700 hover:bg-slate-50">
+            Save Draft
+          </button>
+          <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-500" disabled title="Preview coming soon">
+            Preview
+          </button>
+          <button type="button" onClick={(e) => onSubmit(e, 'published')} className="rounded-xl bg-emerald-600 px-3 py-2 font-semibold text-white hover:bg-emerald-700">
+            Publish Now
+          </button>
         </div>
       </div>
     </div>
