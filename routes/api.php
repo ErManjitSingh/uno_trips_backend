@@ -11,7 +11,14 @@ use App\Http\Controllers\Api\Admin\ReviewController;
 use App\Http\Controllers\Api\Admin\SeoMetaController;
 use App\Http\Controllers\Api\Admin\TourPackageController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\V1\BlogController as V1BlogController;
+use App\Http\Controllers\Api\V1\DestinationController as V1DestinationController;
+use App\Http\Controllers\Api\V1\HomeController as V1HomeController;
+use App\Http\Controllers\Api\V1\LeadController as V1LeadController;
 use App\Http\Controllers\Api\V1\ListingPageController as V1ListingPageController;
+use App\Http\Controllers\Api\V1\PackageController as V1PackageController;
+use App\Http\Controllers\Api\V1\SiteController as V1SiteController;
+use App\Http\Controllers\Api\V1\TourController as V1TourController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -42,6 +49,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function (): void {
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::post('auth/logout', [AuthenticatedSessionController::class, 'apiLogout']);
+    Route::post('listing-pages', [V1ListingPageController::class, 'store']);
     Route::get('reviews', [ReviewController::class, 'index']);
     Route::get('reviews/{review}', [ReviewController::class, 'show']);
     Route::put('reviews/{review}/approve', [ReviewController::class, 'approve']);
@@ -51,7 +59,21 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
 });
 
 Route::prefix('v1')->group(function (): void {
+    Route::get('home', V1HomeController::class);
+    Route::get('site/settings', [V1SiteController::class, 'settings']);
+    Route::get('site/about', [V1SiteController::class, 'about']);
+    Route::get('site/contact', [V1SiteController::class, 'contact']);
+    Route::get('packages', [V1PackageController::class, 'index']);
+    Route::get('packages/{slug}', [V1PackageController::class, 'show']);
+    Route::get('package/{slug}', [V1PackageController::class, 'show']);
+    Route::get('tours', [V1TourController::class, 'index']);
+    Route::get('tours/{slug}', [V1TourController::class, 'show']);
+    Route::get('destinations', [V1DestinationController::class, 'index']);
+    Route::get('destinations/{slug}', [V1DestinationController::class, 'show']);
+    Route::get('blog/categories', [V1BlogController::class, 'categories']);
+    Route::get('blog/posts', [V1BlogController::class, 'index']);
+    Route::get('blog/posts/{slug}', [V1BlogController::class, 'show']);
+    Route::post('leads', [V1LeadController::class, 'store']);
     Route::get('listing-pages', [V1ListingPageController::class, 'index']);
-    Route::post('listing-pages', [V1ListingPageController::class, 'store']);
     Route::get('listing-pages/{slug}', [V1ListingPageController::class, 'show']);
 });
