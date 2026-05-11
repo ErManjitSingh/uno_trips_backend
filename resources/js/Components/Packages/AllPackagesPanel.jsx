@@ -323,6 +323,39 @@ export default function AllPackagesPanel({ packages, filters, destinations, upda
         </table>
       </div>
 
+      {packages?.total > 0 && (packages?.from != null || packages?.links?.length) ? (
+        <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-600">
+            {packages.from != null && packages.to != null ? (
+              <>
+                Showing <span className="font-medium text-slate-800">{packages.from}</span>–<span className="font-medium text-slate-800">{packages.to}</span> of{' '}
+                <span className="font-medium text-slate-800">{packages.total}</span> packages
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-slate-800">{packages.total}</span> package{packages.total === 1 ? '' : 's'} total
+              </>
+            )}
+          </p>
+          {packages?.links?.length ? (
+            <div className="flex flex-wrap gap-2">
+              {packages.links.map((link, idx) => (
+                <button
+                  key={`${link.url ?? 'x'}-${idx}`}
+                  type="button"
+                  disabled={!link.url}
+                  onClick={() => link.url && router.visit(link.url, { preserveScroll: true })}
+                  className={`rounded-lg border px-2.5 py-1 text-xs ${
+                    link.active ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-600'
+                  } disabled:cursor-not-allowed disabled:opacity-40`}
+                  dangerouslySetInnerHTML={{ __html: link.label }}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <ActionConfirmModal
         open={Boolean(confirmModal)}
         type={confirmModal?.type}
