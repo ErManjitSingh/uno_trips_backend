@@ -89,7 +89,10 @@ class ListingPageQueryService
         $query = TourPackage::query()->where('status', 'published');
 
         if (! empty($filters['destination_id'])) {
-            $query->where('destination', $this->resolveDestinationName((int) $filters['destination_id']));
+            $name = $this->resolveDestinationName((int) $filters['destination_id']);
+            if (is_string($name) && $name !== '') {
+                $query->whereDestinationFilter($name);
+            }
         }
 
         if (! empty($filters['hotel_id'])) {

@@ -27,7 +27,7 @@ class TourController extends Controller
 
         $query = TourPackage::query()
             ->where('status', 'published')
-            ->when($filters['destination'] ?? null, fn ($q, $destination) => $q->where('destination', $destination))
+            ->when($filters['destination'] ?? null, fn ($q, $destination) => $q->whereDestinationFilter($destination))
             ->when($filters['duration'] ?? null, fn ($q, $duration) => $q->where('duration', $duration))
             ->when($filters['category'] ?? null, fn ($q, $category) => $q->where('package_type', $category));
 

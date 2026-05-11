@@ -42,7 +42,7 @@ class DestinationController extends Controller
 
         $packages = TourPackage::query()
             ->where('status', 'published')
-            ->where('destination', $destination->name)
+            ->whereDestinationFilter($destination->name)
             ->latest()
             ->paginate($perPage)
             ->withQueryString();

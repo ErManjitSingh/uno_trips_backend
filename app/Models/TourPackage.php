@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -136,5 +137,53 @@ class TourPackage extends Model
     public function seoMeta(): MorphOne
     {
         return $this->morphOne(SeoMeta::class, 'seoable');
+    }
+
+    /**
+     * Match packages for a tours listing filter (destination name/slug or free text).
+     * When the value matches a destinations row, package destination or location_name is
+     * compared to that row's name, state, district, and city (e.g. "Himachal" vs "Himachal Pradesh").
+     */
+    public function scopeWhereDestinationFilter(Builder $query, ?string $filterValue): Builder
+    {
+        if ($filterValue === null || trim($filterValue) === '') {
+            return $query;
+        }
+
+        $filterValue = trim($filterValue);
+
+        $resolved = Destination::query()
+            ->where(function (Builder $q) use ($filterValue): void {
+                $q->where('name', $filterValue)->orWhere('slug', $filterValue);
+            })
+            ->first();
+
+        $terms = $resolved
+            ? collect([
+                $resolved->name,
+                $resolved->state,
+                $resolved->district,
+                $resolved->city,
+            ])
+            : collect([$filterValue]);
+
+        $terms = $terms
+            ->filter(fn ($t) => is_string($t) && trim($t) !== '')
+            ->map(fn ($t) => trim((string) $t))
+            ->unique()
+            ->values();
+
+        if ($terms->isEmpty()) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $outer) use ($terms): void {
+            foreach ($terms as $index => $term) {
+                $method = $index === 0 ? 'where' : 'orWhere';
+                $outer->{$method}(function (Builder $inner) use ($term): void {
+                    $inner->where('destination', $term)->orWhere('location_name', $term);
+                });
+            }
+        });
     }
 }
