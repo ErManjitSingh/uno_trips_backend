@@ -1,7 +1,8 @@
-import { Head, useForm } from '@inertiajs/react'
+import { Head, useForm, usePage } from '@inertiajs/react'
 import { useState } from 'react'
 
 export default function Login() {
+  const { flash } = usePage().props
   const [showPassword, setShowPassword] = useState(false)
 
   const { data, setData, post, processing, errors } = useForm({
@@ -30,7 +31,7 @@ export default function Login() {
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold tracking-wide">UNO Trips</p>
               <span className="rounded-full bg-white/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider">
-                Super Admin
+                Staff login
               </span>
             </div>
 
@@ -38,6 +39,10 @@ export default function Login() {
               <h1 className="text-2xl font-bold uppercase leading-tight">Login</h1>
               <p className="mt-1 text-xs font-medium uppercase tracking-[0.2em] text-white/90">Welcome back</p>
             </div>
+
+            {flash?.success ? (
+              <div className="rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-xs font-medium text-emerald-50">{flash.success}</div>
+            ) : null}
 
             <div className="space-y-3">
               <input
@@ -78,7 +83,9 @@ export default function Login() {
                 />
                 Remember me
               </label>
-              <span className="opacity-90">Forget password ?</span>
+              <a href="/forgot-password" className="text-amber-100 underline decoration-white/40 hover:text-white">
+                Forgot password?
+              </a>
             </div>
 
             <button

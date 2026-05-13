@@ -14,6 +14,7 @@ use App\Models\WebsiteSetting;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,6 +22,10 @@ class DashboardController extends Controller
 {
     public function index(): Response
     {
+        if (request()->user()?->isExecutive()) {
+            return $this->executiveDashboard();
+        }
+
         $range = request()->input('range', '7d');
         $visitorsRange = request()->input('visitors_range', 'last7');
         $trafficRange = request()->input('traffic_range', 'last7');
@@ -199,6 +204,54 @@ class DashboardController extends Controller
         ];
     }
 
+    private function executiveDashboard(): Response
+    {
+        $userId = (int) request()->user()->id;
+
+        $packageBase = TourPackage::query()->where('created_by', $userId);
+        $blogBase = BlogPost::query()->where('created_by', $userId);
+
+        $pkgApproval = Schema::hasColumn('tour_packages', 'approval_status');
+        $blogApproval = Schema::hasColumn('blog_posts', 'approval_status');
+
+        $stats = [
+            'packages_total' => (clone $packageBase)->count(),
+            'packages_pending' => $pkgApproval ? (clone $packageBase)->where('approval_status', 'pending')->count() : 0,
+            'packages_approved' => $pkgApproval ? (clone $packageBase)->where('approval_status', 'approved')->count() : (clone $packageBase)->where('status', 'published')->count(),
+            'packages_rejected' => $pkgApproval ? (clone $packageBase)->where('approval_status', 'rejected')->count() : 0,
+            'blogs_total' => (clone $blogBase)->count(),
+            'blogs_pending' => $blogApproval ? (clone $blogBase)->where('approval_status', 'pending')->count() : 0,
+            'blogs_approved' => $blogApproval ? (clone $blogBase)->where('approval_status', 'approved')->count() : (clone $blogBase)->where('status', 'published')->count(),
+            'blogs_rejected' => $blogApproval ? (clone $blogBase)->where('approval_status', 'rejected')->count() : 0,
+        ];
+
+        $packageColumns = ['id', 'title', 'slug', 'status', 'updated_at'];
+        if ($pkgApproval) {
+            $packageColumns[] = 'approval_status';
+        }
+        $recentPackages = TourPackage::query()
+            ->where('created_by', $userId)
+            ->latest()
+            ->limit(5)
+            ->get($packageColumns);
+
+        $blogColumns = ['id', 'title', 'slug', 'status', 'updated_at'];
+        if ($blogApproval) {
+            $blogColumns[] = 'approval_status';
+        }
+        $recentBlogs = BlogPost::query()
+            ->where('created_by', $userId)
+            ->latest()
+            ->limit(5)
+            ->get($blogColumns);
+
+        return Inertia::render('Admin/DashboardExecutive', [
+            'stats' => $stats,
+            'recentPackages' => $recentPackages,
+            'recentBlogs' => $recentBlogs,
+        ]);
+    }
+
     private function resolveTrafficRangeDate(string $range): ?Carbon
     {
         return match ($range) {
@@ -240,6 +293,7 @@ class DashboardController extends Controller
                 'blog.deleted' => 'Blog deleted: '.$title,
                 'lead.created' => 'Lead created',
                 'lead.updated' => 'Lead updated',
+                'auth.login' => ($log->actor?->name ?? 'User').' signed in',
                 default => str_replace('.', ' ', $log->action),
             };
 

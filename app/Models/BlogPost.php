@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\ApprovalStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Support\Facades\Schema;
 
 class BlogPost extends Model
 {
@@ -33,6 +35,7 @@ class BlogPost extends Model
         return [
             'published_at' => 'datetime',
             'is_popular' => 'boolean',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -59,6 +62,21 @@ class BlogPost extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function scopePubliclyVisible($query)
+    {
+        $query->where('status', 'published');
+        if (Schema::hasColumn((new BlogPost)->getTable(), 'approval_status')) {
+            $query->where('approval_status', ApprovalStatus::Approved->value);
+        }
+
+        return $query;
     }
 
     public function seoMeta(): MorphOne

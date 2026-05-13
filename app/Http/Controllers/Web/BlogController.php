@@ -24,7 +24,7 @@ class BlogController extends Controller
                 return BlogCategory::query()->orderBy('name')->get(['id', 'name', 'slug']);
             }),
             'posts' => BlogPost::query()
-                ->where('status', 'published')
+                ->publiclyVisible()
                 ->with('category:id,name,slug')
                 ->latest('published_at')
                 ->paginate(9),
@@ -41,7 +41,7 @@ class BlogController extends Controller
             ]),
             'post' => $blogPost->load('category:id,name,slug'),
             'related' => BlogPost::query()
-                ->where('status', 'published')
+                ->publiclyVisible()
                 ->where('blog_category_id', $blogPost->blog_category_id)
                 ->where('id', '!=', $blogPost->id)
                 ->latest('published_at')

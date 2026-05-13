@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MediaAsset extends Model
 {
     protected $fillable = [
         'folder',
+        'uploaded_by',
         'file_name',
         'file_path',
         'mime_type',
@@ -21,4 +23,10 @@ class MediaAsset extends Model
             'file_size' => 'integer',
         ];
     }
+
+    public function uploader(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'uploaded_by');
+    }
 }
+

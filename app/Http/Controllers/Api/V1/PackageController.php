@@ -92,8 +92,8 @@ class PackageController extends Controller
     public function show(string $slug, SeoResolver $seoResolver): JsonResponse
     {
         $package = TourPackage::query()
+            ->publiclyVisible()
             ->where('slug', $slug)
-            ->where('status', 'published')
             ->with([
                 'images' => fn ($q) => $q->orderByDesc('is_featured')->orderBy('id'),
                 'faqs',
@@ -108,7 +108,7 @@ class PackageController extends Controller
         $canonicalUrl = $package->canonical_url ?: route('tours.show', $package);
 
         $related = TourPackage::query()
-            ->where('status', 'published')
+            ->publiclyVisible()
             ->where('id', '!=', $package->id)
             ->where('destination', $package->destination)
             ->with([
@@ -160,7 +160,7 @@ class PackageController extends Controller
         }
 
         $query = TourPackage::query()
-            ->where('status', 'published')
+            ->publiclyVisible()
             ->when($filters['destination'] ?? null, fn ($q, $destination) => $q->whereDestinationFilter($destination))
             ->when($filters['duration'] ?? null, fn ($q, $duration) => $q->where('duration', $duration))
             ->when($filters['category'] ?? null, fn ($q, $category) => $q->where('package_type', $category));

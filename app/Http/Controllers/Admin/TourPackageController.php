@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Enums\ApprovalStatus;
 use App\Models\ActivityLog;
 use App\Models\Faq;
 use App\Models\PackageCategory;
 use App\Models\TourPackage;
+use App\Services\ContentApprovalService;
 use App\Support\ImageVariantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -25,6 +28,8 @@ class TourPackageController extends Controller
 
     public function index(Request $request): Response
     {
+        Gate::authorize('viewAny', TourPackage::class);
+
         $filters = $request->validate([
             'tab' => ['nullable', 'string', 'max:30'],
             'search' => ['nullable', 'string', 'max:150'],
@@ -43,6 +48,7 @@ class TourPackageController extends Controller
         $search = $filters['search'] ?? null;
 
         $packages = TourPackage::query()
+            ->when($request->user()->isExecutive(), fn ($q) => $q->where('created_by', $request->user()->id))
             ->when($search, function ($query) use ($search): void {
                 $query->where(function ($nested) use ($search): void {
                     $nested->where('title', 'like', "%{$search}%")
@@ -64,6 +70,10 @@ class TourPackageController extends Controller
                 ->with(['faqs' => fn ($query) => $query->orderBy('sort_order')])
                 ->find($selectedPackageId)
             : null;
+
+        if ($selectedPackage) {
+            Gate::authorize('view', $selectedPackage);
+        }
 
         return Inertia::render('Admin/Packages/Index', [
             'packages' => $packages,
@@ -95,6 +105,8 @@ class TourPackageController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        Gate::authorize('create', TourPackage::class);
+
         $rules = [
             'title' => ['required', 'string', 'max:150'],
             'slug' => ['required', 'string', 'max:170', 'unique:tour_packages,slug'],
@@ -182,6 +194,28 @@ class TourPackageController extends Controller
 
         $package = TourPackage::create($validated);
         $this->syncFaqs($package, $faqPayload);
+
+        if (Schema::hasColumn('tour_packages', 'approval_status')) {
+            if ($request->user()->isExecutive()) {
+                $package->forceFill([
+                    'created_by' => $request->user()->id,
+                    'approval_status' => ApprovalStatus::Pending->value,
+                    'status' => 'draft',
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    'approval_remarks' => null,
+                ])->save();
+                app(ContentApprovalService::class)->notifyAdminsOfNewPackage($package);
+            } else {
+                $package->forceFill([
+                    'created_by' => $package->created_by ?? $request->user()->id,
+                    'approval_status' => ApprovalStatus::Approved->value,
+                    'approved_by' => $request->user()->id,
+                    'approved_at' => now(),
+                ])->save();
+            }
+        }
+
         $this->logPackageActivity($request, 'package.created', $package, [
             'title' => $package->title,
             'status' => $package->status,
@@ -192,6 +226,12 @@ class TourPackageController extends Controller
 
     public function update(Request $request, TourPackage $package): RedirectResponse
     {
+        Gate::authorize('update', $package);
+
+        if ($request->user()->isExecutive()) {
+            $request->merge(['status' => 'draft']);
+        }
+
         $incomingStatus = $request->input('status');
         $normalizedStatus = is_string($incomingStatus) && in_array(trim($incomingStatus), ['draft', 'published'], true)
             ? trim($incomingStatus)
@@ -296,8 +336,25 @@ class TourPackageController extends Controller
             $validated['faqs'],
         );
 
+        $previousApproval = Schema::hasColumn('tour_packages', 'approval_status')
+            ? $package->approval_status
+            : null;
+
         $package->update($validated);
         $this->syncFaqs($package, $faqPayload);
+
+        if (Schema::hasColumn('tour_packages', 'approval_status') && $request->user()->isExecutive()) {
+            $package->forceFill([
+                'approval_status' => ApprovalStatus::Pending->value,
+                'approved_by' => null,
+                'approved_at' => null,
+                'approval_remarks' => null,
+            ])->save();
+
+            if ($previousApproval === ApprovalStatus::Rejected->value) {
+                app(ContentApprovalService::class)->notifyAdminsOfNewPackage($package->fresh());
+            }
+        }
         $this->logPackageActivity($request, 'package.updated', $package, [
             'title' => $package->title,
             'status' => $package->status,
@@ -308,6 +365,8 @@ class TourPackageController extends Controller
 
     public function destroy(TourPackage $package): RedirectResponse
     {
+        Gate::authorize('delete', $package);
+
         ActivityLog::query()->create([
             'actor_id' => request()->user()?->id,
             'action' => 'package.deleted',
@@ -365,6 +424,8 @@ class TourPackageController extends Controller
 
     public function bulkDiscount(Request $request): RedirectResponse
     {
+        Gate::authorize('bulkDiscount', TourPackage::class);
+
         $validated = $request->validate([
             'discount_type' => ['required', Rule::in(['percent', 'fixed', 'clear'])],
             'discount_value' => ['nullable', 'numeric', 'min:0'],
@@ -411,6 +472,8 @@ class TourPackageController extends Controller
 
     public function bulkDelete(Request $request): RedirectResponse
     {
+        Gate::authorize('bulkDelete', TourPackage::class);
+
         $validated = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:tour_packages,id'],

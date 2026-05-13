@@ -23,7 +23,7 @@ class SitemapController extends Controller
             ])
                 ->merge(
                     TourPackage::query()
-                        ->where('status', 'published')
+                        ->publiclyVisible()
                         ->get(['slug', 'updated_at'])
                         ->map(fn ($tour) => ['loc' => route('tours.show', $tour->slug), 'lastmod' => $tour->updated_at?->toDateString()])
                 )
@@ -34,7 +34,7 @@ class SitemapController extends Controller
                 )
                 ->merge(
                     BlogPost::query()
-                        ->where('status', 'published')
+                        ->publiclyVisible()
                         ->get(['slug', 'updated_at'])
                         ->map(fn ($post) => ['loc' => route('blog.show', $post->slug), 'lastmod' => $post->updated_at?->toDateString()])
                 );

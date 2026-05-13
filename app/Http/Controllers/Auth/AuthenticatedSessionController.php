@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,7 +32,29 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
+        $user = Auth::user();
+        if (! $user->canAccessAdminContent()) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => 'This account cannot access the admin panel.',
+            ]);
+        }
+
         $request->session()->regenerate();
+
+        $user->forceFill(['last_login_at' => now()])->save();
+
+        ActivityLog::query()->create([
+            'actor_id' => $user->id,
+            'action' => 'auth.login',
+            'module' => 'auth',
+            'target_type' => null,
+            'target_id' => null,
+            'meta' => [
+                'ip' => $request->ip(),
+                'user_agent' => \Illuminate\Support\Str::limit((string) $request->userAgent(), 500, ''),
+            ],
+        ]);
 
         return redirect()->intended(route('admin.dashboard'));
     }

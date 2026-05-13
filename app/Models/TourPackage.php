@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Builder;
+use App\Enums\ApprovalStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Support\Facades\Schema;
 
 class TourPackage extends Model
 {
@@ -106,6 +105,7 @@ class TourPackage extends Model
             'filter_priority' => 'integer',
             'featured' => 'boolean',
             'max_people' => 'integer',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -139,8 +139,22 @@ class TourPackage extends Model
         return $this->morphOne(SeoMeta::class, 'seoable');
     }
 
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function scopePubliclyVisible(Builder $query): Builder
+    {
+        $query->where('status', 'published');
+        if (Schema::hasColumn($query->getModel()->getTable(), 'approval_status')) {
+            $query->where('approval_status', ApprovalStatus::Approved->value);
+        }
+
+        return $query;
+    }
+
     /**
-     * Match packages for a tours listing filter (destination name/slug or free text).
      * When the value matches a destinations row, package destination or location_name is
      * compared to that row's name, state, district, and city (e.g. "Himachal" vs "Himachal Pradesh").
      */

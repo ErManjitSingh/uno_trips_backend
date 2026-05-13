@@ -41,7 +41,7 @@ class DestinationController extends Controller
         $perPage = $request->validate(['per_page' => ['nullable', 'integer', 'min:1', 'max:50']])['per_page'] ?? 9;
 
         $packages = TourPackage::query()
-            ->where('status', 'published')
+            ->publiclyVisible()
             ->whereDestinationFilter($destination->name)
             ->latest()
             ->paginate($perPage)

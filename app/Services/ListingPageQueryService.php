@@ -86,7 +86,7 @@ class ListingPageQueryService
 
     private function buildQuery(array $filters): Builder
     {
-        $query = TourPackage::query()->where('status', 'published');
+        $query = TourPackage::query()->publiclyVisible();
 
         if (! empty($filters['destination_id'])) {
             $name = $this->resolveDestinationName((int) $filters['destination_id']);

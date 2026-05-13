@@ -31,6 +31,44 @@ import {
     RefreshCw,
 } from "lucide-react";
 
+const executiveMenuGroups = [
+    {
+        key: "dashboard",
+        label: "Dashboard",
+        icon: Gauge,
+        href: "/admin/dashboard",
+    },
+    {
+        key: "package-control",
+        label: "My Packages",
+        icon: Package,
+        children: [
+            { href: "/admin/packages", label: "All packages" },
+            { href: "/admin/packages?tab=add", label: "New package" },
+        ],
+    },
+    {
+        key: "blog-control",
+        label: "My blogs",
+        icon: BookOpenText,
+        children: [
+            { href: "/admin/blogs", label: "All posts" },
+            { href: "/admin/blogs/create", label: "New post" },
+            { href: "/admin/blogs/drafts", label: "Drafts" },
+            { href: "/admin/blog-categories", label: "Categories" },
+            { href: "/admin/blog-tags", label: "Tags" },
+        ],
+    },
+    {
+        key: "media-library",
+        label: "Media Library",
+        icon: Image,
+        children: [
+            { href: "/admin/media-library", label: "Upload Media" },
+        ],
+    },
+];
+
 const menuGroups = [
     {
         key: "dashboard",
@@ -228,6 +266,9 @@ function getItemActiveScore(url, href) {
 
 export default function AdminLayout({ title, children }) {
     const { url, props } = usePage();
+    const role = props?.auth?.user?.role;
+    const isExecutive = role === "executive";
+    const sourceMenu = isExecutive ? executiveMenuGroups : menuGroups;
     const [refreshing, setRefreshing] = useState(false);
     const [dismissedAlert, setDismissedAlert] = useState("");
     const [darkMode, setDarkMode] = useState(
@@ -268,37 +309,58 @@ export default function AdminLayout({ title, children }) {
     }, [url]);
 
     useEffect(() => {
-        const direct = menuGroups.find(
+        const direct = sourceMenu.find(
             (g) => g.href && isItemActive(url, g.href),
         );
         if (direct) {
             setOpenGroup(direct.key);
             return;
         }
-        const withChild = menuGroups.find((g) =>
+        const withChild = sourceMenu.find((g) =>
             g.children?.some((item) => isItemActive(url, item.href)),
         );
         if (withChild) {
             setOpenGroup(withChild.key);
         }
-    }, [url]);
+    }, [url, sourceMenu]);
 
     const filteredGroups = useMemo(() => {
-        if (!search.trim()) return menuGroups;
-        const term = search.toLowerCase();
-        return menuGroups
-            .map((group) => ({
-                ...group,
-                children: (group.children || []).filter((item) =>
-                    item.label.toLowerCase().includes(term),
-                ),
-            }))
-            .filter(
-                (group) =>
-                    group.label.toLowerCase().includes(term) ||
-                    (group.children && group.children.length > 0),
-            );
-    }, [search]);
+        const term = search.trim().toLowerCase();
+        const filterChildren = (groups) =>
+            groups
+                .map((group) => ({
+                    ...group,
+                    children: (group.children || []).filter((item) =>
+                        item.label.toLowerCase().includes(term),
+                    ),
+                }))
+                .filter(
+                    (group) =>
+                        group.label.toLowerCase().includes(term) ||
+                        (group.children && group.children.length > 0),
+                );
+
+        let core = !term
+            ? sourceMenu
+            : filterChildren(sourceMenu);
+
+        if (role === "super_admin") {
+            const adminGroup = {
+                key: "administration",
+                label: "Administration",
+                icon: ShieldCheck,
+                children: [
+                    { href: "/admin/approvals", label: "Approvals" },
+                    { href: "/admin/users", label: "Users" },
+                ],
+            };
+            if (!term || "administration".includes(term) || "approvals".includes(term) || "users".includes(term)) {
+                core = [adminGroup, ...core];
+            }
+        }
+
+        return core;
+    }, [search, sourceMenu, role]);
 
     const firstValidationError = useMemo(() => {
         const pageErrors = props?.errors || {};
@@ -650,7 +712,7 @@ export default function AdminLayout({ title, children }) {
                     </div>
                 </div>
             ) : null}
-            <AdminAssistantWidget />
+            {!isExecutive ? <AdminAssistantWidget /> : null}
         </div>
     );
 }

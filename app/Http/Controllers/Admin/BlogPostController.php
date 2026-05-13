@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ApprovalStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\BlogTag;
 use App\Models\SeoMeta;
+use App\Services\ContentApprovalService;
 use App\Support\ImageVariantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -27,6 +31,8 @@ class BlogPostController extends Controller
 
     public function create(Request $request): Response
     {
+        Gate::authorize('create', BlogPost::class);
+
         $draftId = $request->integer('draft');
         $post = null;
 
@@ -36,6 +42,9 @@ class BlogPostController extends Controller
                 ->whereIn('status', ['draft', 'scheduled'])
                 ->with(['tags:id,name', 'categories:id,name', 'seoMeta'])
                 ->first();
+            if ($post) {
+                Gate::authorize('view', $post);
+            }
         }
 
         return $this->renderForm($post);
@@ -43,6 +52,8 @@ class BlogPostController extends Controller
 
     public function edit(BlogPost $blog): Response
     {
+        Gate::authorize('view', $blog);
+
         $blog->load(['tags:id,name', 'categories:id,name', 'seoMeta']);
 
         return $this->renderForm($blog);
@@ -50,7 +61,10 @@ class BlogPostController extends Controller
 
     public function drafts(): Response
     {
+        Gate::authorize('viewAny', BlogPost::class);
+
         $drafts = BlogPost::query()
+            ->when(Auth::user()->isExecutive(), fn ($q) => $q->where('created_by', Auth::id()))
             ->whereIn('status', ['draft', 'scheduled'])
             ->latest('updated_at')
             ->select(['id', 'title', 'slug', 'excerpt', 'content', 'updated_at'])
@@ -64,6 +78,12 @@ class BlogPostController extends Controller
 
     public function seoManager(): Response
     {
+        $user = Auth::user();
+        abort_unless(
+            $user && ($user->isSuperAdmin() || in_array($user->role, ['staff', 'sales', 'content_manager'], true)),
+            403
+        );
+
         $posts = BlogPost::query()
             ->latest()
             ->select([
@@ -106,7 +126,13 @@ class BlogPostController extends Controller
 
     public function index(): Response
     {
-        $posts = BlogPost::query()->with('category:id,name')->latest()->paginate(12);
+        Gate::authorize('viewAny', BlogPost::class);
+
+        $posts = BlogPost::query()
+            ->when(Auth::user()->isExecutive(), fn ($q) => $q->where('created_by', Auth::id()))
+            ->with('category:id,name')
+            ->latest()
+            ->paginate(12);
 
         $posts->getCollection()->transform(function (BlogPost $post): BlogPost {
             $post->setAttribute('author_name', 'Admin Team');
@@ -124,6 +150,8 @@ class BlogPostController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        Gate::authorize('create', BlogPost::class);
+
         $validated = $this->validatePayload($request);
         $payload = $this->preparePayload($validated, $request);
         $payload['created_by'] = Auth::id();
@@ -131,6 +159,29 @@ class BlogPostController extends Controller
         $post = BlogPost::create($payload);
         $this->syncTaxonomies($post, $validated);
         $this->syncSeoMeta($post, $validated);
+
+        if (Schema::hasColumn('blog_posts', 'approval_status')) {
+            if (Auth::user()->isExecutive()) {
+                $post->forceFill([
+                    'created_by' => Auth::id(),
+                    'approval_status' => ApprovalStatus::Pending->value,
+                    'status' => 'draft',
+                    'published_at' => null,
+                    'approved_by' => null,
+                    'approved_at' => null,
+                    'approval_remarks' => null,
+                ])->save();
+                app(ContentApprovalService::class)->notifyAdminsOfNewBlog($post);
+            } else {
+                $post->forceFill([
+                    'created_by' => $post->created_by ?? Auth::id(),
+                    'approval_status' => ApprovalStatus::Approved->value,
+                    'approved_by' => Auth::id(),
+                    'approved_at' => now(),
+                ])->save();
+            }
+        }
+
         $this->logBlogActivity($request, 'blog.created', $post, ['title' => $post->title, 'status' => $post->status]);
 
         return redirect()->route('admin.blogs.index')->with('success', 'Blog post created.');
@@ -138,13 +189,38 @@ class BlogPostController extends Controller
 
     public function update(Request $request, BlogPost $blog): RedirectResponse
     {
+        Gate::authorize('update', $blog);
+
+        if (Auth::user()->isExecutive()) {
+            $request->merge(['status' => 'draft']);
+        }
+
         $validated = $this->validatePayload($request, $blog);
         $payload = $this->preparePayload($validated, $request, $blog);
         $payload['created_by'] = $validated['author_id'] ?? $blog->created_by;
 
+        $previousApproval = Schema::hasColumn('blog_posts', 'approval_status')
+            ? $blog->approval_status
+            : null;
+
         $blog->update($payload);
         $this->syncTaxonomies($blog, $validated);
         $this->syncSeoMeta($blog, $validated);
+
+        if (Schema::hasColumn('blog_posts', 'approval_status') && Auth::user()->isExecutive()) {
+            $blog->forceFill([
+                'approval_status' => ApprovalStatus::Pending->value,
+                'approved_by' => null,
+                'approved_at' => null,
+                'approval_remarks' => null,
+                'published_at' => null,
+            ])->save();
+
+            if ($previousApproval === ApprovalStatus::Rejected->value) {
+                app(ContentApprovalService::class)->notifyAdminsOfNewBlog($blog->fresh());
+            }
+        }
+
         $this->logBlogActivity($request, 'blog.updated', $blog, ['title' => $blog->title, 'status' => $blog->status]);
 
         return redirect()->route('admin.blogs.index')->with('success', 'Blog post updated.');
@@ -152,6 +228,8 @@ class BlogPostController extends Controller
 
     public function destroy(BlogPost $blog): RedirectResponse
     {
+        Gate::authorize('delete', $blog);
+
         ActivityLog::query()->create([
             'actor_id' => request()->user()?->id,
             'action' => 'blog.deleted',
@@ -167,6 +245,8 @@ class BlogPostController extends Controller
 
     public function bulkAction(Request $request): RedirectResponse
     {
+        abort_if(Auth::user()->isExecutive(), 403);
+
         $validated = $request->validate([
             'action' => ['required', Rule::in(['delete', 'publish'])],
             'ids' => ['required', 'array', 'min:1'],
@@ -191,6 +271,8 @@ class BlogPostController extends Controller
 
     public function quickPublish(BlogPost $blog): RedirectResponse
     {
+        Gate::authorize('quickPublish', $blog);
+
         $isPublished = $blog->status === 'published';
 
         $blog->update([
@@ -203,6 +285,12 @@ class BlogPostController extends Controller
 
     public function updateSeo(Request $request, BlogPost $blog): RedirectResponse
     {
+        $user = Auth::user();
+        abort_unless(
+            $user && ($user->isSuperAdmin() || in_array($user->role, ['staff', 'sales', 'content_manager'], true)),
+            403
+        );
+
         $validated = $request->validate([
             'seo_title' => ['nullable', 'string', 'max:190'],
             'meta_description' => ['nullable', 'string', 'max:300'],
@@ -226,6 +314,12 @@ class BlogPostController extends Controller
 
     public function bulkSeoUpdate(Request $request): RedirectResponse
     {
+        $user = Auth::user();
+        abort_unless(
+            $user && ($user->isSuperAdmin() || in_array($user->role, ['staff', 'sales', 'content_manager'], true)),
+            403
+        );
+
         $validated = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:blog_posts,id'],
@@ -300,8 +394,10 @@ class BlogPostController extends Controller
         ];
 
         if ($draft) {
+            Gate::authorize('update', $draft);
             $draft->update($payload);
         } else {
+            Gate::authorize('create', BlogPost::class);
             $draft = BlogPost::query()->create($payload);
         }
 

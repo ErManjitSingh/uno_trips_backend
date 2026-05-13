@@ -11,6 +11,7 @@ use App\Models\Lead;
 use App\Models\Review;
 use App\Models\TourPackage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -33,6 +34,7 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
+        'created_by',
     ];
 
     /**
@@ -56,7 +58,40 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'permissions' => 'array',
+            'last_login_at' => 'datetime',
         ];
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function createdExecutives(): HasMany
+    {
+        return $this->hasMany(User::class, 'created_by');
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isExecutive(): bool
+    {
+        return $this->role === 'executive';
+    }
+
+    /**
+     * Panel access for packages/blogs (executives + legacy staff roles).
+     */
+    public function canAccessAdminContent(): bool
+    {
+        if (($this->status ?? 'active') !== 'active') {
+            return false;
+        }
+
+        return in_array($this->role, ['super_admin', 'executive', 'staff', 'sales', 'content_manager'], true);
     }
 
     public function hasRole(string ...$roles): bool

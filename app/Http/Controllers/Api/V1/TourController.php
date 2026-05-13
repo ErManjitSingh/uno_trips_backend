@@ -26,7 +26,7 @@ class TourController extends Controller
         $perPage = $filters['per_page'] ?? 9;
 
         $query = TourPackage::query()
-            ->where('status', 'published')
+            ->publiclyVisible()
             ->when($filters['destination'] ?? null, fn ($q, $destination) => $q->whereDestinationFilter($destination))
             ->when($filters['duration'] ?? null, fn ($q, $duration) => $q->where('duration', $duration))
             ->when($filters['category'] ?? null, fn ($q, $category) => $q->where('package_type', $category));
@@ -65,8 +65,8 @@ class TourController extends Controller
     public function show(string $slug, SeoResolver $seoResolver): JsonResponse
     {
         $tourPackage = TourPackage::query()
+            ->publiclyVisible()
             ->where('slug', $slug)
-            ->where('status', 'published')
             ->firstOrFail();
 
         $canonicalUrl = $tourPackage->canonical_url ?: route('tours.show', $tourPackage);
@@ -80,7 +80,7 @@ class TourController extends Controller
         ]);
 
         $related = TourPackage::query()
-            ->where('status', 'published')
+            ->publiclyVisible()
             ->where('id', '!=', $tourPackage->id)
             ->where('destination', $tourPackage->destination)
             ->limit(4)

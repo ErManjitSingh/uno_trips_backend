@@ -34,6 +34,19 @@ class DatabaseSeeder extends Seeder
                 'password' => env('ADMIN_PASSWORD', 'Anku_123!'),
                 'email_verified_at' => now(),
                 'role' => 'super_admin',
+                'status' => 'active',
+            ]
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'executive@unotrips.com'],
+            [
+                'name' => 'Demo Executive',
+                'password' => 'Executive_123!',
+                'email_verified_at' => now(),
+                'role' => 'executive',
+                'status' => 'active',
+                'phone' => null,
             ]
         );
 

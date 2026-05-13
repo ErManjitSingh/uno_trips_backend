@@ -25,7 +25,7 @@ class TourController extends Controller
         $sort = $filters['sort'] ?? 'latest';
 
         $query = TourPackage::query()
-            ->where('status', 'published')
+            ->publiclyVisible()
             ->when($filters['destination'] ?? null, fn ($q, $destination) => $q->whereDestinationFilter($destination))
             ->when($filters['duration'] ?? null, fn ($q, $duration) => $q->where('duration', $duration))
             ->when($filters['category'] ?? null, fn ($q, $category) => $q->where('package_type', $category));
@@ -75,7 +75,7 @@ class TourController extends Controller
                     ->latest(),
             ]),
             'related' => TourPackage::query()
-                ->where('status', 'published')
+                ->publiclyVisible()
                 ->where('id', '!=', $tourPackage->id)
                 ->where('destination', $tourPackage->destination)
                 ->limit(4)
@@ -88,7 +88,7 @@ class TourController extends Controller
         return Inertia::render('Web/Destinations/Show', [
             'destination' => $destination,
             'packages' => TourPackage::query()
-                ->where('status', 'published')
+                ->publiclyVisible()
                 ->whereDestinationFilter($destination->name)
                 ->latest()
                 ->paginate(9)
