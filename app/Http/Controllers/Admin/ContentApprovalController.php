@@ -10,6 +10,7 @@ use App\Services\ContentApprovalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,53 +24,71 @@ class ContentApprovalController extends Controller
     {
         abort_unless($request->user()->isSuperAdmin(), 403);
 
-        $pendingPackages = TourPackage::query()
-            ->where('approval_status', 'pending')
-            ->with('creator:id,name,email')
-            ->select([
-                'id',
-                'title',
-                'slug',
-                'location_name',
-                'destination',
-                'duration',
-                'days',
-                'nights',
-                'price',
-                'offer_price',
-                'status',
-                'package_type',
-                'short_description',
-                'full_description',
-                'featured_image',
-                'itinerary',
-                'inclusions',
-                'exclusions',
-                'created_by',
-                'created_at',
-                'updated_at',
-                'approval_status',
-            ])
-            ->latest()
-            ->paginate(15, ['*'], 'packages_page');
+        $packageColumns = [
+            'id',
+            'title',
+            'slug',
+            'location_name',
+            'destination',
+            'duration',
+            'days',
+            'nights',
+            'price',
+            'offer_price',
+            'status',
+            'package_type',
+            'short_description',
+            'full_description',
+            'featured_image',
+            'itinerary',
+            'inclusions',
+            'exclusions',
+            'created_by',
+            'created_at',
+            'updated_at',
+        ];
+        if (Schema::hasColumn('tour_packages', 'approval_status')) {
+            $packageColumns[] = 'approval_status';
+        }
 
-        $pendingBlogs = BlogPost::query()
-            ->where('approval_status', 'pending')
+        $packagesBase = TourPackage::query()
+            ->with('creator:id,name,email')
+            ->select($packageColumns);
+
+        if (Schema::hasColumn('tour_packages', 'approval_status')) {
+            $packagesBase->where('approval_status', 'pending');
+        } else {
+            $packagesBase->whereRaw('0 = 1');
+        }
+
+        $pendingPackages = $packagesBase->latest()->paginate(15, ['*'], 'packages_page');
+
+        $blogColumns = [
+            'id',
+            'title',
+            'slug',
+            'excerpt',
+            'status',
+            'featured_image',
+            'created_by',
+            'created_at',
+            'updated_at',
+        ];
+        if (Schema::hasColumn('blog_posts', 'approval_status')) {
+            $blogColumns[] = 'approval_status';
+        }
+
+        $blogsBase = BlogPost::query()
             ->with('author:id,name,email')
-            ->select([
-                'id',
-                'title',
-                'slug',
-                'excerpt',
-                'status',
-                'featured_image',
-                'created_by',
-                'created_at',
-                'updated_at',
-                'approval_status',
-            ])
-            ->latest()
-            ->paginate(15, ['*'], 'blogs_page');
+            ->select($blogColumns);
+
+        if (Schema::hasColumn('blog_posts', 'approval_status')) {
+            $blogsBase->where('approval_status', 'pending');
+        } else {
+            $blogsBase->whereRaw('0 = 1');
+        }
+
+        $pendingBlogs = $blogsBase->latest()->paginate(15, ['*'], 'blogs_page');
 
         return Inertia::render('Admin/Approvals/Index', [
             'pendingPackages' => $pendingPackages,

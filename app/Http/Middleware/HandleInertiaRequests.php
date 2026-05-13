@@ -58,6 +58,10 @@ class HandleInertiaRequests extends Middleware
                     'blogs' => $blogs,
                 ];
             },
+            /** Absolute URLs for admin deep links (subdirectory / reverse-proxy safe). */
+            'admin_hrefs' => static fn () => [
+                'approvals' => route('admin.approvals.index'),
+            ],
         ];
     }
 }

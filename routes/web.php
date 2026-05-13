@@ -82,19 +82,24 @@ Route::middleware('auth')->group(function (): void {
     Route::prefix('admin')->name('admin.')->middleware(['role:super_admin,executive,staff,sales,content_manager', 'admin.session.timeout'])->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+        /*
+         * Content approvals: same admin role gate as the rest of the panel; super-admin only inside the controller.
+         * Keeping these routes outside the nested super_admin middleware avoids rare route-cache / ordering issues
+         * that can surface as 404 on some hosts.
+         */
+        Route::get('/approvals', [ContentApprovalController::class, 'index'])->name('approvals.index');
+        Route::post('/approvals/packages/{tourPackage}/approve', [ContentApprovalController::class, 'approvePackage'])->name('approvals.packages.approve');
+        Route::post('/approvals/packages/{tourPackage}/reject', [ContentApprovalController::class, 'rejectPackage'])->name('approvals.packages.reject');
+        Route::post('/approvals/blogs/{blog}/approve', [ContentApprovalController::class, 'approveBlog'])->name('approvals.blogs.approve');
+        Route::post('/approvals/blogs/{blog}/reject', [ContentApprovalController::class, 'rejectBlog'])->name('approvals.blogs.reject');
+        Route::post('/approvals/packages/bulk-approve', [ContentApprovalController::class, 'bulkApprovePackages'])->name('approvals.packages.bulk-approve');
+        Route::post('/approvals/blogs/bulk-approve', [ContentApprovalController::class, 'bulkApproveBlogs'])->name('approvals.blogs.bulk-approve');
+
         Route::middleware('super_admin')->group(function (): void {
             Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
             Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
             Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
             Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
-
-            Route::get('/approvals', [ContentApprovalController::class, 'index'])->name('approvals.index');
-            Route::post('/approvals/packages/{tourPackage}/approve', [ContentApprovalController::class, 'approvePackage'])->name('approvals.packages.approve');
-            Route::post('/approvals/packages/{tourPackage}/reject', [ContentApprovalController::class, 'rejectPackage'])->name('approvals.packages.reject');
-            Route::post('/approvals/blogs/{blog}/approve', [ContentApprovalController::class, 'approveBlog'])->name('approvals.blogs.approve');
-            Route::post('/approvals/blogs/{blog}/reject', [ContentApprovalController::class, 'rejectBlog'])->name('approvals.blogs.reject');
-            Route::post('/approvals/packages/bulk-approve', [ContentApprovalController::class, 'bulkApprovePackages'])->name('approvals.packages.bulk-approve');
-            Route::post('/approvals/blogs/bulk-approve', [ContentApprovalController::class, 'bulkApproveBlogs'])->name('approvals.blogs.bulk-approve');
         });
 
         Route::resource('packages', TourPackageController::class)->except(['create', 'edit', 'show']);

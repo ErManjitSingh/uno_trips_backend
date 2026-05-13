@@ -347,13 +347,14 @@ export default function AdminLayout({ title, children }) {
 
         if (role === "super_admin") {
             const pendingPkg = props?.approval_pending_counts?.packages ?? 0;
+            const approvalsHref = props?.admin_hrefs?.approvals || "/admin/approvals";
             const adminGroup = {
                 key: "administration",
                 label: "Administration",
                 icon: ShieldCheck,
                 children: [
                     {
-                        href: "/admin/approvals",
+                        href: approvalsHref,
                         label: "Approvals",
                         badge: pendingPkg > 0 ? pendingPkg : undefined,
                         badgeTone: "rose",
@@ -367,7 +368,7 @@ export default function AdminLayout({ title, children }) {
         }
 
         return core;
-    }, [search, sourceMenu, role, props?.approval_pending_counts?.packages]);
+    }, [search, sourceMenu, role, props?.approval_pending_counts?.packages, props?.admin_hrefs?.approvals]);
 
     const firstValidationError = useMemo(() => {
         const pageErrors = props?.errors || {};
