@@ -24,7 +24,7 @@ class BlogSubmittedForApproval extends Notification
         return [
             'title' => 'New blog pending approval',
             'body' => $this->post->title,
-            'url' => '/admin/approvals',
+            'url' => url('/admin/approvals'),
             'type' => 'blog_submitted',
             'blog_id' => $this->post->id,
         ];

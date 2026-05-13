@@ -1,7 +1,8 @@
-import { Head, Link, router } from '@inertiajs/react'
+import { Head, Link, router, usePage } from '@inertiajs/react'
 import { Fragment, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react'
 import AdminLayout from '../../../Layouts/AdminLayout'
+import { withPathPrefix } from '../../../lib/urlPath'
 
 function storageUrl(path) {
   if (!path) return ''
@@ -42,6 +43,9 @@ function missingBlogFields(b) {
 }
 
 export default function ApprovalsIndex({ pendingPackages, pendingBlogs }) {
+  const basePath = (usePage().props?.base_path ?? '').toString()
+  const adminUrl = (path) => withPathPrefix(path, basePath)
+
   const [expandedPackageId, setExpandedPackageId] = useState(null)
   const [expandedBlogId, setExpandedBlogId] = useState(null)
 
@@ -51,13 +55,13 @@ export default function ApprovalsIndex({ pendingPackages, pendingBlogs }) {
   const submitBulkPackages = () => {
     const ids = pendingPackages?.data?.map((p) => p.id) || []
     if (!window.confirm(`Approve all ${ids.length} pending package(s)?`)) return
-    router.post('/admin/approvals/packages/bulk-approve', { ids })
+    router.post(adminUrl('/admin/approvals/packages/bulk-approve'), { ids })
   }
 
   const submitBulkBlogs = () => {
     const ids = pendingBlogs?.data?.map((b) => b.id) || []
     if (!window.confirm(`Approve all ${ids.length} pending blog(s)?`)) return
-    router.post('/admin/approvals/blogs/bulk-approve', { ids })
+    router.post(adminUrl('/admin/approvals/blogs/bulk-approve'), { ids })
   }
 
   const summaryCards = useMemo(
@@ -198,7 +202,7 @@ export default function ApprovalsIndex({ pendingPackages, pendingBlogs }) {
                           <td className="py-2 align-middle text-stone-600 dark:text-amber-100/80">{p.creator?.name || p.creator?.email || '—'}</td>
                           <td className="py-2 align-middle text-right">
                             <Link
-                              href={`/admin/packages?tab=add&edit=${p.id}`}
+                              href={adminUrl(`/admin/packages?tab=add&edit=${p.id}`)}
                               className="mr-2 inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100"
                             >
                               <ExternalLink className="h-3 w-3" />
@@ -207,7 +211,9 @@ export default function ApprovalsIndex({ pendingPackages, pendingBlogs }) {
                             <button
                               type="button"
                               className="mr-2 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white"
-                              onClick={() => router.post(`/admin/approvals/packages/${p.id}/approve`, {})}
+                              onClick={() =>
+                                router.post(adminUrl(`/admin/approvals/packages/${p.id}/approve`), {})
+                              }
                             >
                               Approve
                             </button>
@@ -216,7 +222,7 @@ export default function ApprovalsIndex({ pendingPackages, pendingBlogs }) {
                               className="rounded-lg bg-rose-600 px-2 py-1 text-xs font-semibold text-white"
                               onClick={() => {
                                 const remarks = window.prompt('Rejection note (optional)') || ''
-                                router.post(`/admin/approvals/packages/${p.id}/reject`, { remarks })
+                                router.post(adminUrl(`/admin/approvals/packages/${p.id}/reject`), { remarks })
                               }}
                             >
                               Reject
@@ -317,7 +323,7 @@ export default function ApprovalsIndex({ pendingPackages, pendingBlogs }) {
                           <td className="py-2 text-stone-600 dark:text-amber-100/80">{b.author?.email || '—'}</td>
                           <td className="py-2 text-right">
                             <Link
-                              href={`/admin/blogs/${b.id}/edit`}
+                              href={adminUrl(`/admin/blogs/${b.id}/edit`)}
                               className="mr-2 inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100"
                             >
                               <ExternalLink className="h-3 w-3" />
@@ -326,7 +332,9 @@ export default function ApprovalsIndex({ pendingPackages, pendingBlogs }) {
                             <button
                               type="button"
                               className="mr-2 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold text-white"
-                              onClick={() => router.post(`/admin/approvals/blogs/${b.id}/approve`, {})}
+                              onClick={() =>
+                                router.post(adminUrl(`/admin/approvals/blogs/${b.id}/approve`), {})
+                              }
                             >
                               Approve
                             </button>
@@ -335,7 +343,7 @@ export default function ApprovalsIndex({ pendingPackages, pendingBlogs }) {
                               className="rounded-lg bg-rose-600 px-2 py-1 text-xs font-semibold text-white"
                               onClick={() => {
                                 const remarks = window.prompt('Rejection note (optional)') || ''
-                                router.post(`/admin/approvals/blogs/${b.id}/reject`, { remarks })
+                                router.post(adminUrl(`/admin/approvals/blogs/${b.id}/reject`), { remarks })
                               }}
                             >
                               Reject

@@ -24,7 +24,7 @@ class PackageSubmittedForApproval extends Notification
         return [
             'title' => 'New package pending approval',
             'body' => $this->package->title,
-            'url' => '/admin/approvals',
+            'url' => url('/admin/approvals'),
             'type' => 'package_submitted',
             'package_id' => $this->package->id,
         ];

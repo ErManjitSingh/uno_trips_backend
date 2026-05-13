@@ -13,6 +13,30 @@ class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
+    /**
+     * Prefix for root-relative URLs when the app lives in a subdirectory.
+     * Prefer the request base path; if empty, derive from {@see config('app.url')} path.
+     */
+    private static function urlPathPrefix(Request $request): string
+    {
+        $fromRequest = rtrim($request->getBasePath(), '/');
+        if ($fromRequest !== '') {
+            return $fromRequest;
+        }
+
+        $appUrl = (string) config('app.url', '');
+        if ($appUrl === '') {
+            return '';
+        }
+
+        $path = parse_url($appUrl, PHP_URL_PATH);
+        if (! is_string($path) || $path === '' || $path === '/') {
+            return '';
+        }
+
+        return rtrim($path, '/');
+    }
+
     public function version(Request $request): ?string
     {
         return parent::version($request);
@@ -22,8 +46,8 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            /** Root-relative fetch() paths (e.g. XAMPP /public or app in subdirectory). */
-            'base_path' => fn () => rtrim($request->getBasePath(), '/'),
+            /** Root-relative paths (XAMPP /public, or subdirectory from APP_URL when request base is empty). */
+            'base_path' => static fn () => self::urlPathPrefix($request),
             'auth' => [
                 'user' => $request->user(),
             ],
@@ -61,14 +85,6 @@ class HandleInertiaRequests extends Middleware
                 } catch (\Throwable) {
                     return null;
                 }
-            },
-            /** Same-origin path (APP_URL / host mismatch safe; works in XAMPP subfolders via base_path). */
-            'admin_hrefs' => static function () use ($request) {
-                $prefix = rtrim($request->getBasePath(), '/');
-
-                return [
-                    'approvals' => $prefix === '' ? '/admin/approvals' : $prefix.'/admin/approvals',
-                ];
             },
         ];
     }

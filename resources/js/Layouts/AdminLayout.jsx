@@ -1,5 +1,6 @@
 import { Link, router, usePage } from "@inertiajs/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { stripPathPrefixFromPageUrl, withPathPrefix } from "../lib/urlPath";
 import useAdminAutoLogout from "../Hooks/useAdminAutoLogout";
 import AdminAssistantWidget from "../Components/AdminAssistant/AdminAssistantWidget";
 import {
@@ -267,6 +268,20 @@ function getItemActiveScore(url, href) {
 
 export default function AdminLayout({ title, children }) {
     const { url, props } = usePage();
+    const pathPrefix = (props?.base_path ?? "").toString();
+    const urlForMenuMatch = useMemo(
+        () => stripPathPrefixFromPageUrl(url, pathPrefix),
+        [url, pathPrefix],
+    );
+    const prefixedAdminHref = useCallback(
+        (href) =>
+            href &&
+            typeof href === "string" &&
+            href.startsWith("/admin")
+                ? withPathPrefix(href, pathPrefix)
+                : href,
+        [pathPrefix],
+    );
     const role = props?.auth?.user?.role;
     const isExecutive = role === "executive";
     const sourceMenu = isExecutive ? executiveMenuGroups : menuGroups;
@@ -311,19 +326,21 @@ export default function AdminLayout({ title, children }) {
 
     useEffect(() => {
         const direct = sourceMenu.find(
-            (g) => g.href && isItemActive(url, g.href),
+            (g) => g.href && isItemActive(urlForMenuMatch, g.href),
         );
         if (direct) {
             setOpenGroup(direct.key);
             return;
         }
         const withChild = sourceMenu.find((g) =>
-            g.children?.some((item) => isItemActive(url, item.href)),
+            g.children?.some((item) =>
+                isItemActive(urlForMenuMatch, item.href),
+            ),
         );
         if (withChild) {
             setOpenGroup(withChild.key);
         }
-    }, [url, sourceMenu]);
+    }, [urlForMenuMatch, sourceMenu]);
 
     const filteredGroups = useMemo(() => {
         const term = search.trim().toLowerCase();
@@ -347,14 +364,13 @@ export default function AdminLayout({ title, children }) {
 
         if (role === "super_admin") {
             const pendingPkg = props?.approval_pending_counts?.packages ?? 0;
-            const approvalsHref = props?.admin_hrefs?.approvals || "/admin/approvals";
             const adminGroup = {
                 key: "administration",
                 label: "Administration",
                 icon: ShieldCheck,
                 children: [
                     {
-                        href: approvalsHref,
+                        href: "/admin/approvals",
                         label: "Approvals",
                         badge: pendingPkg > 0 ? pendingPkg : undefined,
                         badgeTone: "rose",
@@ -368,7 +384,12 @@ export default function AdminLayout({ title, children }) {
         }
 
         return core;
-    }, [search, sourceMenu, role, props?.approval_pending_counts?.packages, props?.admin_hrefs?.approvals]);
+    }, [
+        search,
+        sourceMenu,
+        role,
+        props?.approval_pending_counts?.packages,
+    ]);
 
     const firstValidationError = useMemo(() => {
         const pageErrors = props?.errors || {};
@@ -472,14 +493,14 @@ export default function AdminLayout({ title, children }) {
                                               (bestIndex, item, idx) => {
                                                   const score =
                                                       getItemActiveScore(
-                                                          url,
+                                                          urlForMenuMatch,
                                                           item.href,
                                                       );
                                                   const bestScore =
                                                       bestIndex === -1
                                                           ? -1
                                                           : getItemActiveScore(
-                                                                url,
+                                                                urlForMenuMatch,
                                                                 group.children[
                                                                     bestIndex
                                                                 ].href,
@@ -491,7 +512,10 @@ export default function AdminLayout({ title, children }) {
                                               -1,
                                           );
                                     const groupActive = group.href
-                                        ? isItemActive(url, group.href)
+                                        ? isItemActive(
+                                              urlForMenuMatch,
+                                              group.href,
+                                          )
                                         : activeChildIndex !== -1;
                                     const isOpen = openGroup === group.key;
                                     if (group.href) {
@@ -501,7 +525,9 @@ export default function AdminLayout({ title, children }) {
                                                 className="rounded-2xl border border-amber-200/80 bg-white/80 p-1 dark:border-stone-700 dark:bg-stone-900/80"
                                             >
                                                 <Link
-                                                    href={group.href}
+                                                    href={prefixedAdminHref(
+                                                        group.href,
+                                                    )}
                                                     className={`group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
                                                         groupActive
                                                             ? "bg-gradient-to-r from-amber-500/15 to-orange-500/15 text-orange-700 dark:text-amber-300"
@@ -576,9 +602,9 @@ export default function AdminLayout({ title, children }) {
                                                                 return (
                                                                     <Link
                                                                         key={`${group.key}-${item.label}`}
-                                                                        href={
-                                                                            item.href
-                                                                        }
+                                                                        href={prefixedAdminHref(
+                                                                            item.href,
+                                                                        )}
                                                                         className={`group/item relative flex items-center justify-between rounded-lg px-3 py-2 text-[13px] transition ${
                                                                             active
                                                                                 ? "mt-3 bg-gradient-to-r from-amber-500 to-orange-600 text-stone-900 shadow-md"
