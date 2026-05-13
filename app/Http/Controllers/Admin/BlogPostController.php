@@ -217,7 +217,7 @@ class BlogPostController extends Controller
                 'published_at' => null,
             ])->save();
 
-            if ($previousApproval === ApprovalStatus::Rejected->value) {
+            if ($previousApproval !== ApprovalStatus::Pending->value) {
                 app(ContentApprovalService::class)->notifyAdminsOfNewBlog($blog->fresh());
             }
         }

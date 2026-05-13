@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\AdminAssistantApiController;
+use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\MediaLibraryController;
 use App\Http\Controllers\Admin\ReviewManagementController;
 use App\Http\Controllers\Admin\SeasonalOfferController;
@@ -78,6 +79,10 @@ Route::middleware('auth')->group(function (): void {
 
     Route::prefix('admin')->name('admin.')->middleware(['role:super_admin,executive,staff,sales,content_manager', 'admin.session.timeout'])->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all', [AdminNotificationController::class, 'markAllRead'])->name('notifications.read-all');
+        Route::post('/notifications/{id}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifications.read')->where('id', '[0-9a-fA-F\\-]{36}');
 
         /*
          * Content approvals: same admin role gate as the rest of the panel; super-admin only inside the controller.

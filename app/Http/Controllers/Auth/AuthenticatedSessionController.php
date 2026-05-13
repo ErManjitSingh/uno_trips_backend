@@ -70,7 +70,9 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
-        return redirect()->intended(route('admin.dashboard'));
+        return redirect()
+            ->intended(route('admin.dashboard'))
+            ->with('success', 'Welcome back, '.$user->name.'!');
     }
 
     public function destroy(Request $request): RedirectResponse

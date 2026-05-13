@@ -352,7 +352,7 @@ class TourPackageController extends Controller
                 'approval_remarks' => null,
             ])->save();
 
-            if ($previousApproval === ApprovalStatus::Rejected->value) {
+            if ($previousApproval !== ApprovalStatus::Pending->value) {
                 app(ContentApprovalService::class)->notifyAdminsOfNewPackage($package->fresh());
             }
         }

@@ -86,6 +86,21 @@ class HandleInertiaRequests extends Middleware
                     return null;
                 }
             },
+            /** Database notifications badge (admin panel bell). */
+            'unread_notifications_count' => static function () use ($request) {
+                $user = $request->user();
+                if (! $user) {
+                    return 0;
+                }
+                if (! Schema::hasTable('notifications')) {
+                    return 0;
+                }
+                try {
+                    return (int) $user->unreadNotifications()->count();
+                } catch (\Throwable) {
+                    return 0;
+                }
+            },
         ];
     }
 }

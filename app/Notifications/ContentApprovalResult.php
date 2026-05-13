@@ -30,7 +30,9 @@ class ContentApprovalResult extends Notification
             'title' => ucfirst($this->contentType).' '.$verb,
             'body' => $this->title,
             'remarks' => $this->remarks,
-            'url' => $this->contentType === 'blog' ? '/admin/blogs' : '/admin/packages',
+            'url' => $this->contentType === 'blog'
+                ? url('/admin/blogs')
+                : url('/admin/packages'),
             'type' => 'content_'.$verb,
         ];
     }
