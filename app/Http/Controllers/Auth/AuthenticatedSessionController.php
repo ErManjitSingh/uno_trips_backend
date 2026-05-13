@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,19 +43,32 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $user->forceFill(['last_login_at' => now()])->save();
+        if (Schema::hasColumn('users', 'last_login_at')) {
+            $user->forceFill(['last_login_at' => now()])->save();
+        }
 
-        ActivityLog::query()->create([
-            'actor_id' => $user->id,
-            'action' => 'auth.login',
-            'module' => 'auth',
-            'target_type' => null,
-            'target_id' => null,
-            'meta' => [
-                'ip' => $request->ip(),
-                'user_agent' => \Illuminate\Support\Str::limit((string) $request->userAgent(), 500, ''),
-            ],
-        ]);
+        if (Schema::hasTable('activity_logs')) {
+            $logRow = [
+                'actor_id' => $user->id,
+                'action' => 'auth.login',
+                'target_type' => null,
+                'target_id' => null,
+                'meta' => [
+                    'ip' => $request->ip(),
+                    'user_agent' => \Illuminate\Support\Str::limit((string) $request->userAgent(), 500, ''),
+                ],
+            ];
+            if (Schema::hasColumn('activity_logs', 'module')) {
+                $logRow['module'] = 'auth';
+            }
+            try {
+                ActivityLog::query()->create($logRow);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('auth.login activity log skipped', [
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return redirect()->intended(route('admin.dashboard'));
     }

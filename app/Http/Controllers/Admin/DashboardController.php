@@ -208,8 +208,15 @@ class DashboardController extends Controller
     {
         $userId = (int) request()->user()->id;
 
-        $packageBase = TourPackage::query()->where('created_by', $userId);
-        $blogBase = BlogPost::query()->where('created_by', $userId);
+        $pkgHasCreatedBy = Schema::hasColumn('tour_packages', 'created_by');
+        $blogHasCreatedBy = Schema::hasColumn('blog_posts', 'created_by');
+
+        $packageBase = $pkgHasCreatedBy
+            ? TourPackage::query()->where('created_by', $userId)
+            : TourPackage::query()->whereRaw('0 = 1');
+        $blogBase = $blogHasCreatedBy
+            ? BlogPost::query()->where('created_by', $userId)
+            : BlogPost::query()->whereRaw('0 = 1');
 
         $pkgApproval = Schema::hasColumn('tour_packages', 'approval_status');
         $blogApproval = Schema::hasColumn('blog_posts', 'approval_status');
@@ -229,21 +236,25 @@ class DashboardController extends Controller
         if ($pkgApproval) {
             $packageColumns[] = 'approval_status';
         }
-        $recentPackages = TourPackage::query()
-            ->where('created_by', $userId)
-            ->latest()
-            ->limit(5)
-            ->get($packageColumns);
+        $recentPackages = $pkgHasCreatedBy
+            ? TourPackage::query()
+                ->where('created_by', $userId)
+                ->latest()
+                ->limit(5)
+                ->get($packageColumns)
+            : collect();
 
         $blogColumns = ['id', 'title', 'slug', 'status', 'updated_at'];
         if ($blogApproval) {
             $blogColumns[] = 'approval_status';
         }
-        $recentBlogs = BlogPost::query()
-            ->where('created_by', $userId)
-            ->latest()
-            ->limit(5)
-            ->get($blogColumns);
+        $recentBlogs = $blogHasCreatedBy
+            ? BlogPost::query()
+                ->where('created_by', $userId)
+                ->latest()
+                ->limit(5)
+                ->get($blogColumns)
+            : collect();
 
         return Inertia::render('Admin/DashboardExecutive', [
             'stats' => $stats,
