@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\Admin\ActivityLogController;
 use App\Http\Controllers\Api\Admin\BlogController;
 use App\Http\Controllers\Api\Admin\BookingController;
@@ -20,15 +21,9 @@ use App\Http\Controllers\Api\V1\PackageController as V1PackageController;
 use App\Http\Controllers\Api\V1\SiteController as V1SiteController;
 use App\Http\Controllers\Api\V1\TourController as V1TourController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/health', function (Request $request): array {
-    return [
-        'ok' => true,
-        'user' => $request->user()?->only(['id', 'name', 'email']),
-    ];
-});
+Route::get('/health', HealthController::class);
 
 Route::middleware('auth:sanctum')->prefix('admin')->group(function (): void {
     Route::apiResource('users', UserController::class);

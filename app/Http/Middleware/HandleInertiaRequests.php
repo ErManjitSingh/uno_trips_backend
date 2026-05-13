@@ -38,30 +38,38 @@ class HandleInertiaRequests extends Middleware
                     return null;
                 }
 
-                $packages = 0;
-                $blogs = 0;
+                try {
+                    $packages = 0;
+                    $blogs = 0;
 
-                if (Schema::hasColumn('tour_packages', 'approval_status')) {
-                    $packages = (int) TourPackage::query()
-                        ->where('approval_status', ApprovalStatus::Pending->value)
-                        ->count();
-                }
+                    if (Schema::hasColumn('tour_packages', 'approval_status')) {
+                        $packages = (int) TourPackage::query()
+                            ->where('approval_status', ApprovalStatus::Pending->value)
+                            ->count();
+                    }
 
-                if (Schema::hasColumn('blog_posts', 'approval_status')) {
-                    $blogs = (int) BlogPost::query()
-                        ->where('approval_status', ApprovalStatus::Pending->value)
-                        ->count();
+                    if (Schema::hasColumn('blog_posts', 'approval_status')) {
+                        $blogs = (int) BlogPost::query()
+                            ->where('approval_status', ApprovalStatus::Pending->value)
+                            ->count();
+                    }
+
+                    return [
+                        'packages' => $packages,
+                        'blogs' => $blogs,
+                    ];
+                } catch (\Throwable) {
+                    return null;
                 }
+            },
+            /** Same-origin path (APP_URL / host mismatch safe; works in XAMPP subfolders via base_path). */
+            'admin_hrefs' => static function () use ($request) {
+                $prefix = rtrim($request->getBasePath(), '/');
 
                 return [
-                    'packages' => $packages,
-                    'blogs' => $blogs,
+                    'approvals' => $prefix === '' ? '/admin/approvals' : $prefix.'/admin/approvals',
                 ];
             },
-            /** Absolute URLs for admin deep links (subdirectory / reverse-proxy safe). */
-            'admin_hrefs' => static fn () => [
-                'approvals' => route('admin.approvals.index'),
-            ],
         ];
     }
 }

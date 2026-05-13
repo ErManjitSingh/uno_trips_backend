@@ -33,17 +33,14 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Web\BlogController;
 use App\Http\Controllers\Web\ContactController;
+use App\Http\Controllers\Web\HomeEntryController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\LeadController as WebLeadController;
 use App\Http\Controllers\Web\ListingPageController as WebListingPageController;
 use App\Http\Controllers\Web\TourController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return auth()->check()
-        ? redirect('/admin/dashboard')
-        : redirect('/login');
-})->name('home');
+Route::get('/', HomeEntryController::class)->name('home');
 Route::get('/about', [HomeController::class, 'about'])->name('about');
 Route::get('/tours', [TourController::class, 'index'])->name('tours.index');
 Route::get('/tours/{tourPackage:slug}', [TourController::class, 'show'])->name('tours.show');
