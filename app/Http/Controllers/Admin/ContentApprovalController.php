@@ -26,12 +26,48 @@ class ContentApprovalController extends Controller
         $pendingPackages = TourPackage::query()
             ->where('approval_status', 'pending')
             ->with('creator:id,name,email')
+            ->select([
+                'id',
+                'title',
+                'slug',
+                'location_name',
+                'destination',
+                'duration',
+                'days',
+                'nights',
+                'price',
+                'offer_price',
+                'status',
+                'package_type',
+                'short_description',
+                'full_description',
+                'featured_image',
+                'itinerary',
+                'inclusions',
+                'exclusions',
+                'created_by',
+                'created_at',
+                'updated_at',
+                'approval_status',
+            ])
             ->latest()
             ->paginate(15, ['*'], 'packages_page');
 
         $pendingBlogs = BlogPost::query()
             ->where('approval_status', 'pending')
             ->with('author:id,name,email')
+            ->select([
+                'id',
+                'title',
+                'slug',
+                'excerpt',
+                'status',
+                'featured_image',
+                'created_by',
+                'created_at',
+                'updated_at',
+                'approval_status',
+            ])
             ->latest()
             ->paginate(15, ['*'], 'blogs_page');
 

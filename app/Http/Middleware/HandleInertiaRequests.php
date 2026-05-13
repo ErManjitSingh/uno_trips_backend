@@ -2,7 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\ApprovalStatus;
+use App\Models\BlogPost;
+use App\Models\TourPackage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -28,6 +32,32 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
             'max_upload_image_kb' => (int) config('filesystems.max_upload_image_kb', 500),
+            'approval_pending_counts' => static function () use ($request) {
+                $user = $request->user();
+                if (! $user?->isSuperAdmin()) {
+                    return null;
+                }
+
+                $packages = 0;
+                $blogs = 0;
+
+                if (Schema::hasColumn('tour_packages', 'approval_status')) {
+                    $packages = (int) TourPackage::query()
+                        ->where('approval_status', ApprovalStatus::Pending->value)
+                        ->count();
+                }
+
+                if (Schema::hasColumn('blog_posts', 'approval_status')) {
+                    $blogs = (int) BlogPost::query()
+                        ->where('approval_status', ApprovalStatus::Pending->value)
+                        ->count();
+                }
+
+                return [
+                    'packages' => $packages,
+                    'blogs' => $blogs,
+                ];
+            },
         ];
     }
 }

@@ -220,6 +220,7 @@ const menuGroups = [
 const badgeStyles = {
     amber: "bg-amber-100 text-amber-700",
     emerald: "bg-emerald-100 text-emerald-700",
+    rose: "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-200",
 };
 
 function parseRelativeUrl(input) {
@@ -345,12 +346,18 @@ export default function AdminLayout({ title, children }) {
             : filterChildren(sourceMenu);
 
         if (role === "super_admin") {
+            const pendingPkg = props?.approval_pending_counts?.packages ?? 0;
             const adminGroup = {
                 key: "administration",
                 label: "Administration",
                 icon: ShieldCheck,
                 children: [
-                    { href: "/admin/approvals", label: "Approvals" },
+                    {
+                        href: "/admin/approvals",
+                        label: "Approvals",
+                        badge: pendingPkg > 0 ? pendingPkg : undefined,
+                        badgeTone: "rose",
+                    },
                     { href: "/admin/users", label: "Users" },
                 ],
             };
@@ -360,7 +367,7 @@ export default function AdminLayout({ title, children }) {
         }
 
         return core;
-    }, [search, sourceMenu, role]);
+    }, [search, sourceMenu, role, props?.approval_pending_counts?.packages]);
 
     const firstValidationError = useMemo(() => {
         const pageErrors = props?.errors || {};
@@ -420,9 +427,9 @@ export default function AdminLayout({ title, children }) {
                                     <div className="relative overflow-hidden rounded-xl border border-stone-800/80 bg-[#0f0f0f] px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.22)]">
                                         <div className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-white/10 to-transparent" />
                                         <img
-                                            src="https://unotrips.com/img/logos.png?v=4&t=1776967446011"
+                                            src="https://travelwithuno.com/img/logo.png"
                                             alt="UNO Trips"
-                                            className="mx-auto h-6 w-auto object-contain"
+                                            className="mx-auto h-8 w-auto max-w-[200px] object-contain"
                                         />
                                     </div>
                                     {!collapsed && (
@@ -431,7 +438,7 @@ export default function AdminLayout({ title, children }) {
                                                 UNO Trips
                                             </p>
                                             <p className="truncate text-xs font-medium uppercase tracking-[0.08em] text-stone-500 dark:text-amber-100/70">
-                                                Admin Panel
+                                                Travel made simple
                                             </p>
                                         </div>
                                     )}

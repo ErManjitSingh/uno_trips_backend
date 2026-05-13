@@ -25,8 +25,15 @@ export default function WebLayout({ title, description, seo, children }) {
       </Head>
 
       <header className="sticky top-0 z-40 border-b border-amber-200/20 bg-stone-950/85 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
-          <Link href="/" className="text-lg font-semibold tracking-wide text-amber-300">UNO Trips Luxury</Link>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-8">
+          <Link href="/" className="flex flex-col items-start gap-0.5">
+            <img
+              src="https://travelwithuno.com/img/logo.png"
+              alt="UNO Trips"
+              className="h-9 w-auto max-w-[200px] object-contain"
+            />
+            <span className="text-[11px] font-medium tracking-wide text-amber-200/90">Travel made simple</span>
+          </Link>
           <nav className="hidden items-center gap-6 text-sm text-amber-100/80 md:flex">
             <Link href="/about" className="hover:text-amber-300">About</Link>
             <Link href="/tours" className="hover:text-amber-300">Tours</Link>
