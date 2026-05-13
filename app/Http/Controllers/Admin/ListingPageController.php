@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
+use App\Support\ImageUploadRules;
 use App\Support\ImageVariantManager;
 use App\Models\Destination;
 use App\Models\ListingPage;
@@ -310,7 +311,7 @@ class ListingPageController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:190'],
             'banner_image' => ['nullable', 'string', 'max:300'],
-            'banner_image_file' => ['nullable', 'image', 'max:5120'],
+            'banner_image_file' => ['nullable', 'image', ImageUploadRules::maxFileRule()],
             'banner_overlay_text' => ['nullable', 'string', 'max:190'],
             'slug' => ['nullable', 'string', 'max:210', Rule::unique('listing_pages', 'slug')->ignore($ignoreId)],
             'page_type' => ['required', Rule::in(['destination', 'seasonal', 'theme', 'custom'])],

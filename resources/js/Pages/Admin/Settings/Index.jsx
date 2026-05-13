@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react'
+import { Head, router, useForm, usePage } from '@inertiajs/react'
 import {
   BadgeCheck,
   BarChart3,
@@ -26,8 +26,9 @@ import {
   Upload,
 } from 'lucide-react'
 import { Children, cloneElement, isValidElement, useEffect, useMemo, useState } from 'react'
-import { usePage } from '@inertiajs/react'
 import AdminLayout from '../../../Layouts/AdminLayout'
+
+import { imageTooLargeMessage } from '../../../lib/imageUploadLimits'
 
 const inputBase =
   'w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100'
@@ -209,6 +210,15 @@ export default function SettingsIndex({ settings }) {
 
   const handleFilePreview = (event, field, setter) => {
     const file = event.target.files?.[0]
+    const imageFields = new Set(['logo_file', 'favicon_file', 'seo_og_image_file'])
+    if (file && imageFields.has(field)) {
+      const msg = imageTooLargeMessage(file, props?.max_upload_image_kb ?? 500)
+      if (msg) {
+        window.alert(msg)
+        event.target.value = ''
+        return
+      }
+    }
     setData(field, file || null)
     if (!file) return
     setter(URL.createObjectURL(file))

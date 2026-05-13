@@ -80,4 +80,15 @@ return [
         public_path('storage') => storage_path('app/public'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Maximum image upload size (kilobytes)
+    |--------------------------------------------------------------------------
+    |
+    | Applied to admin image uploads site-wide. Override with MAX_UPLOAD_IMAGE_KB in .env.
+    |
+    */
+
+    'max_upload_image_kb' => max(1, (int) env('MAX_UPLOAD_IMAGE_KB', 500)),
+
 ];

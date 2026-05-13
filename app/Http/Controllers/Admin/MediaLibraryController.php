@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MediaAsset;
+use App\Support\ImageUploadRules;
 use App\Support\ImageVariantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,7 +49,7 @@ class MediaLibraryController extends Controller
 
         $validated = $request->validate([
             'folder' => ['required', 'string', 'max:80'],
-            'asset' => ['required', 'image', 'max:4096'],
+            'asset' => ['required', 'image', ImageUploadRules::maxFileRule()],
             'alt_text' => ['nullable', 'string', 'max:180'],
         ]);
 

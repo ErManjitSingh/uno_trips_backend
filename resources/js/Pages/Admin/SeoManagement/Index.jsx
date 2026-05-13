@@ -1,6 +1,8 @@
-import { Head } from '@inertiajs/react'
+import { Head, usePage } from '@inertiajs/react'
 import { useEffect, useMemo, useState } from 'react'
 import AdminLayout from '../../../Layouts/AdminLayout'
+
+import { imageTooLargeMessage } from '../../../lib/imageUploadLimits'
 
 const tabs = ['Basic', 'Advanced', 'Social', 'Technical']
 const schemaTypes = ['Article', 'Product', 'Tour Package', 'Local Business']
@@ -52,6 +54,8 @@ function getLiveWarnings(data) {
 }
 
 export default function SeoManagementIndex({ entities, seoEntries = [], technical, schemaTemplates = [] }) {
+  const { props } = usePage()
+  const maxImageKb = props?.max_upload_image_kb ?? 500
   const [activeTab, setActiveTab] = useState('Basic')
   const [scope, setScope] = useState('pages')
   const [selectedId, setSelectedId] = useState(String(entities.pages?.[0]?.id || 'home'))
@@ -454,6 +458,12 @@ export default function SeoManagementIndex({ entities, seoEntries = [], technica
                     onChange={(e) => {
                       const file = e.target.files?.[0]
                       if (!file) return
+                      const msg = imageTooLargeMessage(file, maxImageKb)
+                      if (msg) {
+                        window.alert(msg)
+                        e.target.value = ''
+                        return
+                      }
                       setForm({ ...form, og_image_file: file })
                       setOgPreview(URL.createObjectURL(file))
                     }}
@@ -480,6 +490,12 @@ export default function SeoManagementIndex({ entities, seoEntries = [], technica
                     onChange={(e) => {
                       const file = e.target.files?.[0]
                       if (!file) return
+                      const msg = imageTooLargeMessage(file, maxImageKb)
+                      if (msg) {
+                        window.alert(msg)
+                        e.target.value = ''
+                        return
+                      }
                       setForm({ ...form, twitter_image_file: file })
                       setTwitterPreview(URL.createObjectURL(file))
                     }}

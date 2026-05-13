@@ -8,6 +8,7 @@ use App\Models\SeoMeta;
 use App\Models\SeoTechnicalSetting;
 use App\Models\TourPackage;
 use App\Services\SeoMetaService;
+use App\Support\ImageUploadRules;
 use App\Support\ImageVariantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -218,8 +219,8 @@ class SeoManagementApiController extends Controller
             'image_alt' => ['nullable', 'string', 'max:255'],
             'image_title' => ['nullable', 'string', 'max:255'],
             'image_file_name' => ['nullable', 'string', 'max:255'],
-            'og_image_file' => ['nullable', 'image', 'max:5120'],
-            'twitter_image_file' => ['nullable', 'image', 'max:5120'],
+            'og_image_file' => ['nullable', 'image', ImageUploadRules::maxFileRule()],
+            'twitter_image_file' => ['nullable', 'image', ImageUploadRules::maxFileRule()],
         ]);
     }
 

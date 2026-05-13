@@ -9,6 +9,7 @@ use App\Models\Faq;
 use App\Models\PackageCategory;
 use App\Models\TourPackage;
 use App\Services\ContentApprovalService;
+use App\Support\ImageUploadRules;
 use App\Support\ImageVariantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -137,7 +138,7 @@ class TourPackageController extends Controller
             'included_features_json' => ['nullable', 'string', 'max:100000'],
             'seo_meta_title' => ['nullable', 'string', 'max:190'],
             'seo_meta_description' => ['nullable', 'string', 'max:300'],
-            'featured_image' => ['nullable', 'image', 'max:5120'],
+            'featured_image' => ['nullable', 'image', ImageUploadRules::maxFileRule()],
             'video_url' => ['nullable', 'string', 'max:300'],
             'faq_schema' => ['boolean'],
             'breadcrumb_schema' => ['boolean'],
@@ -278,7 +279,7 @@ class TourPackageController extends Controller
             'included_features_json' => ['nullable', 'string', 'max:100000'],
             'seo_meta_title' => ['nullable', 'string', 'max:190'],
             'seo_meta_description' => ['nullable', 'string', 'max:300'],
-            'featured_image' => ['nullable', 'image', 'max:5120'],
+            'featured_image' => ['nullable', 'image', ImageUploadRules::maxFileRule()],
             'video_url' => ['nullable', 'string', 'max:300'],
             'faq_schema' => ['boolean'],
             'breadcrumb_schema' => ['boolean'],
@@ -392,7 +393,7 @@ class TourPackageController extends Controller
     public function uploadItineraryDayImage(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'image' => ['required', 'image', 'max:5120'],
+            'image' => ['required', 'image', ImageUploadRules::maxFileRule()],
         ]);
 
         $path = $this->imageVariantManager->storeWithVariants($validated['image'], 'tour-packages/itinerary', 'public');
@@ -409,7 +410,7 @@ class TourPackageController extends Controller
     public function uploadEditorImage(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'image' => ['required', 'image', 'max:5120'],
+            'image' => ['required', 'image', ImageUploadRules::maxFileRule()],
         ]);
 
         $path = $this->imageVariantManager->storeWithVariants($validated['image'], 'tour-packages/editor', 'public');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\WebsiteSetting;
+use App\Support\ImageUploadRules;
 use App\Support\ImageVariantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -87,9 +88,9 @@ class WebsiteSettingController extends Controller
             'smtp_settings.username' => ['nullable', 'string', 'max:255'],
             'smtp_settings.password' => ['nullable', 'string', 'max:255'],
             'smtp_settings.encryption' => ['nullable', 'in:ssl,tls'],
-            'logo_file' => ['nullable', 'image', 'max:2048'],
-            'favicon_file' => ['nullable', 'image', 'max:1024'],
-            'seo_og_image_file' => ['nullable', 'image', 'max:2048'],
+            'logo_file' => ['nullable', 'image', ImageUploadRules::maxFileRule()],
+            'favicon_file' => ['nullable', 'image', ImageUploadRules::maxFileRule()],
+            'seo_og_image_file' => ['nullable', 'image', ImageUploadRules::maxFileRule()],
         ]);
 
         unset($data['logo_file'], $data['favicon_file'], $data['seo_og_image_file'], $data['ga4_json_key_file']);

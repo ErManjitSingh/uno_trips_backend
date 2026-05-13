@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react'
+import { Head, router, useForm, usePage } from '@inertiajs/react'
 import { useEffect, useMemo, useState } from 'react'
 import AdminLayout from '../../../Layouts/AdminLayout'
 import AddPackageHeader from '../../../Components/Packages/AddPackageHeader'
@@ -8,6 +8,7 @@ import SeoControlsSection from '../../../Components/Packages/SeoControlsSection'
 import StickySidebar from '../../../Components/Packages/StickySidebar'
 import AllPackagesPanel from '../../../Components/Packages/AllPackagesPanel'
 import CategoryTaxonomySection from '../../../Components/Packages/CategoryTaxonomySection'
+import { imageTooLargeMessage, jsonUploadErrorMessage } from '../../../lib/imageUploadLimits'
 
 const slugify = (value) =>
   value
@@ -33,6 +34,8 @@ export default function PackagesIndex({
   selectedPackage = null,
   packageCategories = [],
 }) {
+  const { props: inertiaProps } = usePage()
+  const maxImageKb = inertiaProps?.max_upload_image_kb ?? 500
   const { data, setData, processing, errors, clearErrors } = useForm({
     title: '',
     slug: '',
@@ -522,6 +525,11 @@ export default function PackagesIndex({
   }
 
   const uploadPackageEditorImage = async (file) => {
+    const sizeMsg = imageTooLargeMessage(file, maxImageKb)
+    if (sizeMsg) {
+      window.alert(sizeMsg)
+      return ''
+    }
     const form = new FormData()
     form.append('image', file)
 
@@ -538,7 +546,7 @@ export default function PackagesIndex({
 
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) {
-      throw new Error(payload.message || 'Image upload failed')
+      throw new Error(jsonUploadErrorMessage(payload))
     }
 
     return payload.url || ''

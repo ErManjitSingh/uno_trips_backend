@@ -10,6 +10,7 @@ use App\Models\BlogPost;
 use App\Models\BlogTag;
 use App\Models\SeoMeta;
 use App\Services\ContentApprovalService;
+use App\Support\ImageUploadRules;
 use App\Support\ImageVariantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -350,7 +351,7 @@ class BlogPostController extends Controller
     public function uploadEditorImage(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'image' => ['required', 'image', 'max:5120'],
+            'image' => ['required', 'image', ImageUploadRules::maxFileRule()],
         ]);
 
         $path = $this->imageVariantManager->storeWithVariants($validated['image'], 'uploads/blog', 'public');
@@ -505,7 +506,7 @@ class BlogPostController extends Controller
             'slug' => ['nullable', 'string', 'max:190', Rule::unique('blog_posts', 'slug')->ignore($blog?->id)],
             'excerpt' => ['nullable', 'string', 'max:500'],
             'content' => ['required', 'string'],
-            'featured_image' => ['nullable', 'image', 'max:4096'],
+            'featured_image' => ['nullable', 'image', ImageUploadRules::maxFileRule()],
             'featured_image_existing' => ['nullable', 'string', 'max:300'],
             'status' => ['required', Rule::in(['draft', 'published', 'scheduled'])],
             'published_at' => ['nullable', 'date'],

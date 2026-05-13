@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
+import { usePage } from '@inertiajs/react'
 import { Car, Landmark, MapPinned, Utensils, Hotel, ShieldCheck } from 'lucide-react'
+
+import { imageTooLargeMessage } from '../../lib/imageUploadLimits'
 
 const baseInput = 'w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-400'
 
@@ -103,6 +106,8 @@ export default function AddPackageWorkspace({
   saveState,
   onSubmit,
 }) {
+  const { props } = usePage()
+  const maxImageKb = props?.max_upload_image_kb ?? 500
   const [autoFaqInput, setAutoFaqInput] = useState('')
   const [uploadingDayId, setUploadingDayId] = useState(null)
   const [inclusions, setInclusions] = useState(() => toEditableList(data.inclusions_text))
@@ -239,6 +244,11 @@ export default function AddPackageWorkspace({
 
   const onPickDayImage = async (dayId, file) => {
     if (!file) return
+    const sizeMsg = imageTooLargeMessage(file, maxImageKb)
+    if (sizeMsg) {
+      window.alert(sizeMsg)
+      return
+    }
     setUploadingDayId(dayId)
     try {
       const url = await uploadItineraryDayImage(file)
@@ -520,7 +530,18 @@ export default function AddPackageWorkspace({
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <h3 className="text-lg font-semibold text-slate-900">Media Uploads</h3>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <label className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center"><p className="text-sm font-medium text-slate-700">Featured Image *</p><input type="file" accept="image/*" className="mt-2 w-full text-xs" onChange={(e) => setData('featured_image', e.target.files?.[0] || null)} /></label>
+          <label className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center"><p className="text-sm font-medium text-slate-700">Featured Image *</p><input type="file" accept="image/*" className="mt-2 w-full text-xs" onChange={(e) => {
+            const f = e.target.files?.[0] || null
+            if (f) {
+              const msg = imageTooLargeMessage(f, maxImageKb)
+              if (msg) {
+                window.alert(msg)
+                e.target.value = ''
+                return
+              }
+            }
+            setData('featured_image', f)
+          }} /></label>
           <label className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center"><p className="text-sm font-medium text-slate-700">Gallery Multiple Upload</p><input type="file" multiple className="mt-2 w-full text-xs" /></label>
           <label className="space-y-1 md:col-span-2"><span className="text-xs font-medium text-slate-500">Video URL</span><input className={baseInput} value={advanced.video_url} onChange={(e) => setAdvancedField('video_url', e.target.value)} placeholder="https://youtube.com/watch?v=..." /></label>
         </div>

@@ -27,6 +27,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'max_upload_image_kb' => (int) config('filesystems.max_upload_image_kb', 500),
         ];
     }
 }

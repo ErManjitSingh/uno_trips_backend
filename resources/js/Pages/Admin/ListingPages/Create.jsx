@@ -7,6 +7,7 @@ import TabNav from '../../../Components/ListingBuilder/TabNav'
 import SectionCard from '../../../Components/ListingBuilder/SectionCard'
 import TagMultiSelect from '../../../Components/ListingBuilder/TagMultiSelect'
 import { Field, fieldClassName } from '../../../Components/ListingBuilder/Field'
+import { imageTooLargeMessage, jsonUploadErrorMessage } from '../../../lib/imageUploadLimits'
 
 const slugify = (value) =>
   value
@@ -75,6 +76,7 @@ function scoreSeo(form) {
 export default function ListingPageCreate({ listingPage, destinations = [], categories = [], packages = [], blogs = [], listingPageOptions = [] }) {
   const { props } = usePage()
   const errors = props?.errors || {}
+  const maxImageKb = props?.max_upload_image_kb ?? 500
   const isEdit = Boolean(listingPage)
   const filters = listingPage?.filters_json || {}
   const packageCfg = listingPage?.packages_json || {}
@@ -219,6 +221,11 @@ export default function ListingPageCreate({ listingPage, destinations = [], cate
   }
 
   const uploadEditorImage = async (file) => {
+    const sizeMsg = imageTooLargeMessage(file, maxImageKb)
+    if (sizeMsg) {
+      window.alert(sizeMsg)
+      return ''
+    }
     const formData = new FormData()
     formData.append('image', file)
 
@@ -235,7 +242,7 @@ export default function ListingPageCreate({ listingPage, destinations = [], cate
 
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) {
-      throw new Error(payload.message || 'Image upload failed')
+      throw new Error(jsonUploadErrorMessage(payload))
     }
 
     return payload.url || ''
@@ -356,6 +363,14 @@ export default function ListingPageCreate({ listingPage, destinations = [], cate
                     className={fieldClassName}
                     onChange={(e) => {
                       const file = e.target.files?.[0] || null
+                      if (file) {
+                        const msg = imageTooLargeMessage(file, maxImageKb)
+                        if (msg) {
+                          window.alert(msg)
+                          e.target.value = ''
+                          return
+                        }
+                      }
                       setBannerFile(file)
                       if (file) {
                         setBannerPreview(URL.createObjectURL(file))

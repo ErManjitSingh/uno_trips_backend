@@ -2,6 +2,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/react'
 import { useEffect, useMemo, useState } from 'react'
 import AdminLayout from '../../../Layouts/AdminLayout'
 import CustomRichTextEditor from '../../../Components/Blog/CustomRichTextEditor'
+import { imageTooLargeMessage, jsonUploadErrorMessage } from '../../../lib/imageUploadLimits'
 
 const slugify = (value) =>
   value
@@ -33,6 +34,7 @@ const toStorageUrl = (path) => {
 
 export default function BlogCreate({ categories = [], tags = [], authors = [], post = null }) {
   const { props } = usePage()
+  const maxImageKb = props?.max_upload_image_kb ?? 500
   const [featuredPreview, setFeaturedPreview] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
   const [tagInput, setTagInput] = useState('')
@@ -145,6 +147,11 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
   }, [data.canonical_url, data.excerpt, data.meta_keywords, data.schema_type, data.seo_meta_description, data.slug, data.title])
 
   const uploadEditorImage = async (file) => {
+    const sizeMsg = imageTooLargeMessage(file, maxImageKb)
+    if (sizeMsg) {
+      window.alert(sizeMsg)
+      return ''
+    }
     const form = new FormData()
     form.append('image', file)
 
@@ -161,7 +168,7 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
 
     const payload = await res.json().catch(() => ({}))
     if (!res.ok) {
-      throw new Error(payload.message || 'Image upload failed')
+      throw new Error(jsonUploadErrorMessage(payload))
     }
 
     return payload.url || ''
@@ -211,6 +218,11 @@ export default function BlogCreate({ categories = [], tags = [], authors = [], p
 
   const onFeaturedFile = (file) => {
     if (!file) return
+    const sizeMsg = imageTooLargeMessage(file, maxImageKb)
+    if (sizeMsg) {
+      window.alert(sizeMsg)
+      return
+    }
     const reader = new FileReader()
     reader.onload = () => {
       setFeaturedPreview(String(reader.result || ''))

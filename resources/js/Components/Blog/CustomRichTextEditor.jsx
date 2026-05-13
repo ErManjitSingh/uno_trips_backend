@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { usePage } from '@inertiajs/react'
 import {
   AlignCenter,
   AlignLeft,
@@ -23,6 +24,8 @@ import {
   Underline,
   Undo2,
 } from 'lucide-react'
+
+import { imageTooLargeMessage } from '../../lib/imageUploadLimits'
 
 const btnBase =
   'rounded-xl border border-white/60 bg-white/85 px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md'
@@ -49,6 +52,8 @@ export default function CustomRichTextEditor({
   const [uploadingImage, setUploadingImage] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
   const [compactToolbar, setCompactToolbar] = useState(false)
+  const { props: pageProps } = usePage()
+  const maxImageKb = pageProps?.max_upload_image_kb ?? 500
   const [activeState, setActiveState] = useState({
     bold: false,
     italic: false,
@@ -181,11 +186,18 @@ export default function CustomRichTextEditor({
 
   const onPickImage = async (file) => {
     if (!file || !onImageUpload) return
+    const sizeMsg = imageTooLargeMessage(file, maxImageKb)
+    if (sizeMsg) {
+      window.alert(sizeMsg)
+      return
+    }
     setUploadingImage(true)
     try {
       const url = await onImageUpload(file)
       if (!url) return
       runCommand('insertImage', url)
+    } catch (err) {
+      window.alert(err?.message || 'Image upload failed.')
     } finally {
       setUploadingImage(false)
     }
